@@ -12,8 +12,6 @@ source $ZSH_PLUGINS/zsh-autosuggestions/zsh-autosuggestions.zsh
 
 export SSH_AUTH_SOCK="$XDG_RUNTIME_DIR/ssh-agent.socket"
 
-export QORE=$HOME/.qore
-export PATH=$PATH:~/.local/bin:$QORE/local/bin:$QORE/project/scripts
 # Source shell modules
 for mod_file in `ls $QORE/shell/mod/`; do 
     source "$QORE/shell/mod/$mod_file"

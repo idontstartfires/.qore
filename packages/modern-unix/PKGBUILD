@@ -1,0 +1,6 @@
+pkgname=qore-modern-unix
+pkgver=1.0
+pkgrel=1
+pkgdesc="Qore Modern Unix"
+arch=("any")
+depends=("bat" "doggo" "duf" "dust" "fd" "fzf" "git-delta" "lsd" "procs" "ripgrep" "sd" "zoxide")

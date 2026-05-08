@@ -1,0 +1,6 @@
+pkgname=qore-language-servers
+pkgver=1.0
+pkgrel=1
+pkgdesc="Qore Language Servers"
+arch=("any")
+depends=( "bash-language-server" "biome" "dart-sass" "gopls" "lua-language-server" "pyright" "ruff" "yaml-language-server" "zls")

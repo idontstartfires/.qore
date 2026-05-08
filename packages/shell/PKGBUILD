@@ -1,0 +1,6 @@
+pkgname=qore-shell
+pkgver=1.0
+pkgrel=1
+pkgdesc="Qore Shell"
+arch=("any")
+depends=("opendoas" "zsh" "zsh-autosuggestions" "zsh-completions" "zsh-syntax-highlighting")
