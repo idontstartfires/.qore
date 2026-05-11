@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# Plan
+- Install each meta-package
+- Set dependencies as such

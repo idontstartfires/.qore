@@ -7,7 +7,7 @@ export TERM=kitty
 export EDITOR=nvim
 export VISUAL=$EDITOR
 
-export BROWSER=firefox-developer-edition
+export BROWSER=vivaldi
 export FM=yazi
 export AUDIO_CTRL=pulsemixer
 export PROC_CTRL=btm
