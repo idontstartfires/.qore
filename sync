@@ -1,2 +1,4 @@
 
-stow --ignore='^mod' shell
+stow -t $HOME --ignore='^mod' shell
+
+stow -t $HOME/.config config

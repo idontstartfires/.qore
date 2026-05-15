@@ -1,4 +1,4 @@
-"$schema" = "https://yazi-rs.github.io/schemas/yazi.json"
+#"$schema" = "https://yazi-rs.github.io/schemas/yazi.json"
 
 [mgr]
 ratio          = [ 0, 3, 5 ]
@@ -15,15 +15,14 @@ scrolloff      = 5
 edit = [ { run = '${EDITOR:-nvim} "$@"', desc = "$EDITOR", block = true } ]
 open = [ { run = 'xdg-open "$@"', desc = "Open" } ]
 extract = [ { run = 'ouch decompress --yes "$1"', desc = "Extract here" } ]
-archive = [ { run = 'ouch compress "$1.tar.bz2" "$1"', desc = "Archive" } ]
-web-browser = [ { run = 'qutebrowser "$1"', orphan = true, desc = "Web Browser" } ]
+web-browser = [ { run = '$BROWSER "$1"', orphan = true, desc = "Web Browser" } ]
 
 image-view-version-sorted = [ { 
-    run = 'fd -t f --exec-batch file --mime-type | rg "image/" | cut -d: -f1 | sort -V | imv -n "$1"', 
+    run = 'fd -t f --exec-batch file --mime-type | rg "image/" | cut -d: -f1 | sort -V | imv -n "$1" --', 
     orphan = true, desc = "View Images" 
 } ]
 image-view-random-sorted = [ {
-    run = 'fd -t f --exec-batch file --mime-type | rg "image/" | cut -d: -f1 | shuf | imv -n "$1"', 
+    run = 'fd -t f --exec-batch file --mime-type | rg "image/" | cut -d: -f1 | shuf | imv -n "$1" --',
     orphan = true, desc = "View Images Randomly" 
 } ]
 
@@ -40,7 +39,7 @@ to-html = [ { run = 'abiword --to=html "$@"', desc = "Text -> HTML" } ]
 
 [open]
 rules = [
-    { url = "*/", use = [ "archive", "image-view-version-sorted", "image-view-random-sorted" ] },
+    { url = "*/", use = [ "image-view-version-sorted", "image-view-random-sorted" ] },
     { mime = "text/x-shellscript", use = [ "edit", "sh" ] },
     { url = "*.sh", use = [ "edit", "sh" ] },
     { mime = "text/html", use = [ "edit", "web-browser" ] },

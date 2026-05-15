@@ -12,7 +12,9 @@ source $ZSH_PLUGINS/zsh-autosuggestions/zsh-autosuggestions.zsh
 
 export SSH_AUTH_SOCK="$XDG_RUNTIME_DIR/ssh-agent.socket"
 
-# Source shell modules
-for mod_file in `ls $QORE/shell/mod/`; do 
-    source "$QORE/shell/mod/$mod_file"
-done
+if [ -d "$QORE" ]; then
+    # Source shell modules
+    for mod_file in `ls $QORE/shell/mod/`; do 
+        source "$QORE/shell/mod/$mod_file"
+    done
+fi

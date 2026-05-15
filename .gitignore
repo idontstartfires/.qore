@@ -1,3 +1,4 @@
 *.pkg.tar.zst
 
 config/yazi/plugins
+config/yazi/package.toml
