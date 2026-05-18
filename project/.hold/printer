@@ -1,0 +1,42 @@
+#!/bin/sh
+
+# project root directory
+ROOT=$HOME/untill/printer
+cd $ROOT
+source venv/bin/activate
+
+ARG=$1; shift
+case $ARG in
+    root) 
+        pwd
+    ;;
+    ide)
+        nvim
+    ;;
+    app)
+        ARG=$1; [[ -n $1 ]] && shift
+        case $ARG in
+            "")
+                echo "app command not provided"
+            ;;
+            serve)
+                SERVER_IMPLEMENTATION=uvicorn venv/bin/python -m uvicorn --host 0.0.0.0 --port 5200 --reload app:app
+            ;;
+            *)   
+                echo "'app ${ARG:-<null>}' command not configured"
+            ;;
+        esac 
+    ;;
+    pip)
+        venv/bin/pip $*
+        if [ "$1" == "install" ]; then
+            venv/bin/pip freeze > requirements.txt
+        fi
+    ;;
+    git)
+        git $*
+    ;;
+    *)
+        echo "'${ARG:-<null>}' not configured"
+    ;;
+esac

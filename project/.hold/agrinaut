@@ -1,0 +1,31 @@
+#!/bin/sh
+
+# project root directory
+ROOT=$HOME/projects/agrinaut
+cd $ROOT
+
+ARG=$1; [[ -n $ARG ]] && shift;
+case $ARG in
+    ide)
+        cd src/
+        nvim
+    ;;
+    build)
+        cargo build $@
+    ;;
+    run)
+        ARG=$1; [[ -n $ARG ]] && shift;
+        case $ARG in
+            reload)
+                cargo watch -cx run $@
+            ;;
+            *)
+                cargo run $ARG $@
+            ;;
+        esac
+    ;;
+    *) 
+        pwd
+    ;;
+esac
+

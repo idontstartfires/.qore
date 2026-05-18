@@ -1,0 +1,11 @@
+# Project profile — sourced by the project script, not executed standalone.
+# ROOT: absolute path to the project's root directory.
+ROOT=$HOME/untill/ctrlnet
+
+# Standard commands (ide, root, nav) have sensible defaults.
+# Add project-specific commands as cmd_<name>() functions:
+
+# cmd_serve() {
+#     cd "$ROOT"
+#     ...
+# }

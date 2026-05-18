@@ -1,0 +1,68 @@
+#!/bin/sh
+
+# project root directory
+ROOT=$HOME/untill/farmnet
+cd $ROOT
+pwd
+source $ROOT/.env
+
+ARG=$1; [[ -n $1 ]] && shift
+case $ARG in
+    path)
+        pwd
+    ;;
+    root)
+        pwd
+    ;;
+    pins)
+        cd tools/pins
+        source venv/bin/activate
+        ARG=$1; [[ -n $1 ]] && shift
+        case $ARG in
+            pip)
+                shift
+                pip $@
+            ;;
+            ide)
+                nvim 
+            ;;
+            serve)
+                uvicorn --reload --host 0.0.0.0 --port 5140 src.app:app 
+            ;;
+            prompt)
+                python src/prompt.py $@
+            ;;
+        esac 
+    ;;
+    messenger)
+        cd tools/messenger
+        source venv/bin/activate
+        ARG=$1; [[ -n $1 ]] && shift
+        case $ARG in
+            ide)
+                nvim 
+            ;;
+            serve)
+                uvicorn --reload --host 0.0.0.0 --port 5130 server:app
+            ;;
+        esac 
+    ;;
+    pip)
+        venv/bin/pip $*
+        if [ "$1" == "install" ]; then
+            venv/bin/pip freeze > requirements.txt
+        fi
+    ;;
+    git)
+        git $*
+    ;;
+    *)
+        source venv/bin/activate
+        case $ARG in
+            ide)
+                nvim
+            ;;
+        esac
+    ;;
+
+esac

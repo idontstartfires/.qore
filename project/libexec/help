@@ -1,0 +1,62 @@
+#!/bin/sh
+# project help — help text for project subcommands
+
+cmd=${1:-project}
+
+case $cmd in
+    project)
+        cat <<'EOF'
+usage: project [command] [args]
+
+commands:
+  profile  [name] [-nvg]    show profile info (defaults to active profile)
+  list                       list all profiles sorted by recency
+  set      <name>            activate a profile (accepts shorthand)
+  select   [-m mode]         interactively pick a profile
+  root                       print active project root path
+  ide                        open IDE in project root
+  nav                        open file manager in project root
+  edit     [name]            edit a profile config
+  new      <name>            create a new profile from template
+  trash    [name]            send profile to system trash
+  purge    [name]            remove profile from manifest permanently
+  recover  <name>            recover a trashed profile from git history
+  manifest [cmd]             access manifest helper directly
+  help     [command]         show help for a command
+EOF
+        ;;
+    profile)
+        cat <<'EOF'
+usage: profile [name] [-nvg] [-h]
+
+display information about a project profile
+name defaults to the active profile when omitted
+
+flags (combinable, eg. -vg):
+  -n   name only
+  -v   verbose: all manifest fields
+  -g   include git summary
+  -h   show this help
+
+examples:
+  project profile             active profile, default view
+  project profile farmflow    view farmflow's profile
+  project profile -vg         verbose + git summary for active profile
+  project profile -n          name only (for scripts and status bars)
+EOF
+        ;;
+    select)
+        cat <<'EOF'
+usage: project select [-m mode]
+
+interactively select and activate a profile
+
+options:
+  -m, --mode <mode>   selector UI: fzf (default) or wofi
+  -h, --help          show this help
+EOF
+        ;;
+    *)
+        printf 'project: no help for "%s"\n' "$cmd" >&2
+        exit 1 ;;
+esac

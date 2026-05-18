@@ -1,0 +1,26 @@
+#!/bin/sh
+
+# project root directory
+ROOT=$HOME/projects/finance
+cd $ROOT
+
+ARG=$1; shift
+case $ARG in
+    root) 
+        pwd
+    ;;
+    ide)
+        source venv/bin/activate
+        nvim 
+    ;;
+    run)
+        venv/bin/python src/main.py
+        #zig run src/main.zig
+    ;;
+    build)
+        zig build
+    ;;
+    test)
+        zig build test
+    ;;
+esac

@@ -1,0 +1,32 @@
+#!/bin/sh
+
+# project root directory
+ROOT=$HOME/untill/inventory
+cd $ROOT
+
+ARG=$1; shift
+case $ARG in
+    root) 
+        pwd
+    ;;
+    ide)
+        nvim $@
+    ;;
+    build)
+        cargo build $@
+    ;;
+    run)
+        ARG=$1; [[ -n $ARG ]] && shift;
+        case $ARG in
+            reload)
+                cargo watch -cx run $@
+            ;;
+            *)
+                cargo run $ARG $@
+            ;;
+        esac
+    ;;
+    *) 
+        pwd
+    ;;
+esac
