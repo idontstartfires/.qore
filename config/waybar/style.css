@@ -1,0 +1,129 @@
+
+* {
+    /* `otf-font-awesome` is required to be installed for icons */
+    font-family: FontAwesome, Roboto, Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    color: white;
+    text-shadow: 0 0 2px black;
+}
+
+#custom-host,
+#custom-project {
+    margin: 8px;
+    padding: 4px 16px;
+    border-radius: 8px;
+    box-shadow: 0 0 2px 2px lightgrey;
+    background-color: rgba(0, 0, 0, 0.65);
+}
+
+#custom-project {
+    margin-left: 4px;
+    min-width: 96px;
+}
+
+window#waybar {
+    background-color: rgba(0, 0, 0, 0.0);
+    color: white;
+}
+
+window#waybar.hidden {
+    opacity: 0.2;
+}
+
+button {
+    margin: 8px 6px;
+    border: none;
+    border-radius: 8px;
+    background-color: rgba(0, 0, 0, 0.65);
+}
+
+#workspaces button {
+    padding: 4px 16px;
+    box-shadow: 0 0 2px 2px lightgrey;
+}
+
+#workspaces button.empty {
+    box-shadow: none;
+}
+
+#workspaces button.active {
+    background-color: rgba(0, 0, 0, 0.25);
+}
+
+#submap {
+    box-shadow: 0 0 2px 2px lightgrey;
+    margin: 6px;
+    padding: 0 16px;
+    border-radius: 8px;
+    min-width: 96px;
+    background-color: rgba(0, 0, 0, 0.65);
+}
+
+#clock,
+#battery,
+#cpu,
+#memory,
+#temperature,
+#backlight,
+#network,
+#pulseaudio,
+#idle_inhibitor
+{
+    margin: 8px;
+    padding: 4px 16px;
+    border-radius: 8px;
+    color: white;
+    box-shadow: 0 0 2px 2px lightgrey;
+    min-width: 64px;
+    background-color: rgba(0, 0, 0, 0.65);
+}
+
+/* If workspaces is the leftmost module, omit left margin */
+.modules-left > widget:first-child > #workspaces {
+    margin-left: 0;
+}
+
+/* If workspaces is the rightmost module, omit right margin */
+.modules-right > widget:last-child > #workspaces {
+    margin-right: 0;
+}
+
+#clock {
+    min-width: 96px;
+}
+
+@keyframes blink {
+    to {
+        background-color: white;
+        color: white;
+    }
+}
+
+#pulseaudio {
+    min-width: 128px;
+}
+
+#network {
+    min-width: 96px;
+}
+
+#battery.critical:not(.charging) {
+    background-color: red;
+    animation-name: blink;
+    animation-duration: 0.65s;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
+}
+
+#network.disconnected {
+    background-color: red;
+}
+
+#pulseaudio.muted {
+    background-color: red;
+}
+
+#temperature.critical {
+    background-color: red;
+}

@@ -1,0 +1,13 @@
+configuration {
+    modes:          "drun,run,window,filebrowser,calc";
+    show-icons:     true;
+    matching:       "fuzzy";
+    sort:           true;
+    sorting-method: "fzf";
+    terminal:       "ghostty";
+    drun {
+        display-format: "{name}";
+    }
+}
+
+@theme "theme"

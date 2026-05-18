@@ -1,0 +1,83 @@
+/* Everforest Dark — translated from wofi style.css */
+* {
+    bg:     #1E2326ff;
+    bg-alt: #3A464Cff;
+    fg:     #D3C6AAff;
+    accent: #D699B6ff;
+    dim:    #7A8478ff;
+
+    background-color: transparent;
+    text-color:       @fg;
+    border-color:     @fg;
+}
+
+window {
+    background-color: @bg;
+    border:           2px;
+    border-radius:    8px;
+    width:            600px;
+    padding:          8px;
+}
+
+mainbox {
+    background-color: @bg;
+    spacing:          8px;
+    children:         [ inputbar, listview ];
+}
+
+inputbar {
+    background-color: @bg-alt;
+    border:           1px;
+    border-radius:    4px;
+    padding:          5px;
+    children:         [ prompt, entry ];
+}
+
+prompt {
+    background-color: @bg-alt;
+    padding:          0 6px 0 2px;
+}
+
+entry {
+    background-color:  @bg-alt;
+    placeholder:       "Search...";
+    placeholder-color: @dim;
+}
+
+listview {
+    background-color: @bg;
+    scrollbar:        false;
+    spacing:          4px;
+}
+
+element {
+    background-color: @bg-alt;
+    border:           1px;
+    border-radius:    4px;
+    padding:          6px;
+}
+
+element selected {
+    border:       2px;
+    border-color: @accent;
+}
+
+element-icon {
+    background-color: @bg-alt;
+    size:             24px;
+    margin:           0 8px 0 0;
+}
+
+element-icon selected {
+    background-color: @bg-alt;
+}
+
+element-text {
+    background-color: @bg-alt;
+    text-color:       @fg;
+}
+
+element-text selected {
+    background-color: @bg-alt;
+    text-color:       @fg;
+}

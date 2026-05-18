@@ -1,0 +1,3 @@
+#!/bin/sh
+# Requires: cliphist, wtype
+cliphist list | rofi -dmenu -p "clip" | cliphist decode | wtype -

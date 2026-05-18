@@ -1,0 +1,10 @@
+#!/bin/sh
+choice=$(printf 'lock\nlogout\nsuspend\nreboot\nshutdown' \
+    | rofi -dmenu -p "session" -matching normal -no-custom -i)
+case $choice in
+    lock)     loginctl lock-session ;;
+    logout)   hyprctl dispatch exit ;;
+    suspend)  systemctl suspend ;;
+    reboot)   systemctl reboot ;;
+    shutdown) systemctl poweroff ;;
+esac
