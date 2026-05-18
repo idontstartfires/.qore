@@ -1,0 +1,21 @@
+ROOT=$QORE
+
+cmd_ide() {
+    cd "$ROOT"
+    nvim
+}
+
+cmd_sync() {
+    cd "$ROOT"
+    git pull --rebase && git push
+}
+
+cmd_status() {
+    cd "$ROOT"
+    git status --short
+}
+
+cmd_log() {
+    cd "$ROOT"
+    git log --oneline -20
+}

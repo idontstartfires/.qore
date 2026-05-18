@@ -1,7 +1,9 @@
 #!/bin/zsh
+source $HOME/.zprofile
 # SILENCE!
 unsetopt beep
 # Zsh Completion
+fpath=($QORE/project/completions $fpath)
 autoload -Uz compinit && compinit
 zstyle ':completion::complete:*' gain-privileges 1
 # Zsh Plugins

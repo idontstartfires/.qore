@@ -7,15 +7,11 @@ export FILE_MANAGER=yazi
 export AUDIO_CONTROL=pulsemixer
 export PROCESS_CONTROL=btm
 
-export LAUNCHER=wofi
+export LAUNCHER=rofi
 
 export XDG_CONFIG_HOME=$HOME/.config
 export XDG_CACHE_HOME=$HOME/.cache
 export XDG_DATA_HOME=$HOME/.local/share
-
-HISTFILE=$XDG_CACHE_HOME/.zsh_history
-HISTSIZE=1000
-SAVEHIST=1000
 
 export LESSHISTFILE=-
 export GNUPGHOME=$XDG_DATA_HOME/gnupg
@@ -27,7 +23,7 @@ export GOMODCACHE=$GOPATH/pkg/mod
 export PYTHON_HISTORY=$XDG_DATA_HOME/python/history
 
 export QORE=$HOME/.qore
-export PATH="$HOME/.local/bin:$QORE/local/bin:$QORE/project/scripts:$PATH"
+export PATH="$HOME/.local/bin:$QORE/local/bin:$QORE/project/bin:$PATH"
 
 export WLR_NO_HARDWARE_CURSORS=1
 export QT_QPA_PLATFORM=wayland 

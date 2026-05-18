@@ -1,0 +1,66 @@
+#compdef project
+
+_project() {
+    local state
+    local -a commands
+
+    commands=(
+        'profile:show profile info (defaults to active)'
+        'list:list all profiles sorted by recency'
+        'set:activate a profile (accepts shorthand)'
+        'select:interactively pick a profile'
+        'root:print active project root path'
+        'ide:open IDE in project root'
+        'nav:open file manager in project root'
+        'edit:edit a profile config'
+        'new:create a new profile from template'
+        'trash:send profile to system trash'
+        'purge:remove profile from manifest permanently'
+        'recover:recover a trashed profile from git history'
+        'manifest:access manifest helper'
+        'help:show help for a command'
+    )
+
+    _arguments -C \
+        '(-h --help)'{-h,--help}'[show help]' \
+        '1:command:->command' \
+        '*::args:->args'
+
+    case $state in
+        command)
+            _describe 'command' commands ;;
+        args)
+            case $words[1] in
+                profile)
+                    local -a profiles
+                    profiles=("${(@f)$(project list 2>/dev/null | sed 's/^[● ] *//' | awk '{print $1}')}")
+                    _arguments \
+                        '1:profile name:->profile' \
+                        '-n[name only]' \
+                        '-v[verbose: all manifest fields]' \
+                        '-g[include git summary]' \
+                        '-h[show help]'
+                    [[ $state == profile ]] && _describe 'profile' profiles ;;
+                set|edit|trash|purge)
+                    local -a profiles
+                    profiles=("${(@f)$(project list 2>/dev/null | sed 's/^[● ] *//' | awk '{print $1}')}")
+                    _describe 'profile' profiles ;;
+                recover)
+                    local -a all
+                    all=("${(@f)$(project manifest list 2>/dev/null)}")
+                    _describe 'profile' all ;;
+                select)
+                    _arguments \
+                        '(-m --mode)'{-m,--mode}'[selector UI]:mode:(fzf wofi)' \
+                        '(-h --help)'{-h,--help}'[show help]' ;;
+                manifest)
+                    local -a manifest_cmds
+                    manifest_cmds=(list show add touch mark remove exists get)
+                    _describe 'manifest command' manifest_cmds ;;
+                help)
+                    _describe 'command' commands ;;
+            esac ;;
+    esac
+}
+
+_project "$@"

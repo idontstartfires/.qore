@@ -1,0 +1,28 @@
+# project ui — sourced formatting helpers
+# Provides: color variables (c_*), _reltime()
+#
+# Color variables hold literal ANSI escape sequences: ESC [ <code> m
+# They are empty strings when stdout is not a terminal.
+
+if [ -t 1 ]; then
+    c_reset='[0m'
+    c_bold='[1m'
+    c_dim='[2m'
+    c_green='[32m'
+    c_yellow='[33m'
+else
+    c_reset='' c_bold='' c_dim='' c_green='' c_yellow=''
+fi
+
+_reltime() {
+    ts=${1:-0}
+    [ "$ts" -eq 0 ] 2>/dev/null && { printf 'never'; return; }
+    now=$(date +%s)
+    diff=$((now - ts))
+    if   [ $diff -lt 60 ];     then printf 'just now'
+    elif [ $diff -lt 3600 ];   then printf '%dm ago' $((diff / 60))
+    elif [ $diff -lt 86400 ];  then printf '%dh ago' $((diff / 3600))
+    elif [ $diff -lt 604800 ]; then printf '%dd ago' $((diff / 86400))
+    else                            printf '%dw ago' $((diff / 604800))
+    fi
+}
