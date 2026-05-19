@@ -1,17 +1,17 @@
 #!/bin/sh
-ROOT=$HOME/untill/farmflow
+ROOT=$HOME/untill/portal
 
 cmd_app() {
     cd "$ROOT"
     HOST=0.0.0.0
-    PORT=5100
+    PORT=5000
     ARG=$1; [[ -n $1 ]] && shift
     case $ARG in
         "")
             echo "app command not provided"
         ;;
         serve)
-            uv run uvicorn --host $HOST --port $PORT --timeout-graceful-shutdown 3 --reload --factory app:serve
+            uv run uvicorn --host $HOST --port $PORT --reload --factory app:serve
         ;;
         *)   
             echo "'app ${ARG:-<null>}' command not configured"

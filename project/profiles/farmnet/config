@@ -1,11 +1,87 @@
+#!/bin/sh
 # Project profile — sourced by the project script, not executed standalone.
 # ROOT: absolute path to the project's root directory.
-ROOT=$HOME
+ROOT=$HOME/untill/farmnet
 
 # Standard commands (ide, root, nav) have sensible defaults.
 # Add project-specific commands as cmd_<name>() functions:
 
-# cmd_serve() {
-#     cd "$ROOT"
-#     ...
-# }
+_get_ssh_host() {
+    case $1 in 
+        seeder-0)    echo seeder.farmnet ;;
+        structure-0) echo structure.0.farmnet ;;
+        structure-1) echo structure.1.farmnet ;;
+        harvester-0) echo harvester.farmnet ;;
+        downlift-0)  echo downlift.0.farmnet ;;
+    esac
+}
+
+
+_get_node_interlink_port() {
+    case $1 in 
+        seeder-0)    echo 5555 ;;
+        structure-0) echo 5556 ;;
+        structure-1) echo 5557 ;;
+        harvester-0) echo 5558 ;;
+        downlift-0)  echo 5559 ;;
+        dev-0)       echo 5560 ;;
+    esac
+}
+
+cmd_pins() {
+    cd $ROOT/tools/pins
+    cmd=$1; [[ -n $1 ]] && shift
+    case $cmd in
+        ide) nvim ;;
+        serve)
+            uv run uvicorn --reload --host 0.0.0.0 --port 5140 src.app:app 
+        ;;
+        prompt)
+            uv run src/prompt.py $@
+        ;;
+        flicker)
+            uv run src/flicker.py $@ \
+                structure-0/DI_10 structure-0/DI_11 structure-0/DI_5 \
+                structure-1/DI_10 structure-1/DI_7 structure-1/DI_5
+        ;;
+        style)
+            sass --load-path=static/scss --watch static/scss/:static/css/
+        ;;
+    esac 
+}
+
+cmd_node() {
+    cd "$ROOT"
+    if [ -f "$ROOT/.env" ]; then
+        source "$ROOT/.env"
+    else
+        echo "No .env file found: $ROOT/.env"
+    fi
+    cmd=$1; shift
+    NODE_NAME=$1; shift
+    REMOTE=`_get_ssh_host $NODE_NAME`
+    echo "Host: $REMOTE"
+    case $cmd in
+        push)
+            rsync -a --info=progress2 --delete-after \
+            --exclude="*.pyc" \
+            --include="/src/***" \
+            --include="/scripts/***" \
+            --include="/requirements.txt" \
+            --exclude="*" \
+            $ROOT/ $REMOTE:~/farmnet/
+        ;;
+        ssh|sftp) $cmd $REMOTE ;;
+        test)
+            INTERLINK_PORT=$(_get_node_interlink_port $NODE_NAME)
+            echo "Interlink port: $INTERLINK_PORT"
+            while true; do
+                INTERLINK_PORT=$INTERLINK_PORT \
+                uv run src/main.py \
+                --mode=test \
+                --config="$NODE_NAME" \
+                $@ -l PeerDiscovery=30 Uplink=30 Interlink=30
+                sleep 2
+            done
+    esac 
+}
