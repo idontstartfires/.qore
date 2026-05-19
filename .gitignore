@@ -1,4 +1,9 @@
 *.pkg.tar.zst
 
-config/yazi/plugins
-config/yazi/package.toml
+/config/yazi/plugins
+/config/yazi/package.toml
+
+# Project state files
+/project/active
+/project/manifest
+
