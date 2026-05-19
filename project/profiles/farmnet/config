@@ -1,10 +1,5 @@
 #!/bin/sh
-# Project profile — sourced by the project script, not executed standalone.
-# ROOT: absolute path to the project's root directory.
 ROOT=$HOME/untill/farmnet
-
-# Standard commands (ide, root, nav) have sensible defaults.
-# Add project-specific commands as cmd_<name>() functions:
 
 _get_ssh_host() {
     case $1 in 
