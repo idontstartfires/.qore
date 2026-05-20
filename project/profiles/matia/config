@@ -1,3 +1,4 @@
+#!/bin/sh
 ROOT=$HOME/untill/matia
 
 cmd_db() {
