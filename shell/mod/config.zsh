@@ -66,6 +66,12 @@ function config() {
     arg=$1; [[ -n $1 ]] && shift
     case $arg in
         shell) _config_shell $@ ;;
+        project)
+            cwd=$(pwd)
+            cd "$QORE/project"
+            $EDITOR .
+            cd "$cwd"
+        ;;
         *) 
             cwd=$(pwd)
             cd "$XDG_CONFIG_HOME/$arg"
