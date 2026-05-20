@@ -1,5 +1,7 @@
 #!/bin/sh
+
 # Project profile — sourced by the project script, not executed standalone.
+
 # ROOT: absolute path to the project's root directory.
 ROOT=$HOME
 
