@@ -4,10 +4,10 @@ ROOT=$HOME/projects/finance
 
 cmd_build() {
     cd $ROOT
-    cargo build
+    cargo build $*
 }
 
 cmd_run() {
     cd $ROOT
-    cargo run
+    cargo run $*
 }
