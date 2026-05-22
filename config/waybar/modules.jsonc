@@ -1,0 +1,62 @@
+{
+    "layer": "top",
+    "position": "top",
+
+    "custom/host": {
+        "exec": "hostname -s"
+    },
+    "custom/project": {
+        "exec": "project profile -n",
+        "on-click": "project select -m $LAUNCHER",
+        "interval": 2
+    },
+    "hyprland/submap": {
+        "format": "󰥻  {}",
+        "max-length": 16,
+        "tooltip": false
+    },
+    "clock": {
+        "tooltip-format": "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>",
+        "format-alt": "{:%Y/%m/%d}"
+    },
+    "pulseaudio": {
+        "format": "{volume}% {icon}  {format_source}",
+        "format-bluetooth": "{volume}% {icon}  {format_source}",
+        "format-bluetooth-muted": " {icon}  {format_source}",
+        "format-muted": " {format_source}",
+        "format-source": "{volume}% ",
+        "format-source-muted": "",
+        "format-icons": {
+            "headphone": "󰋋",
+            "hands-free": "󰕹",
+            "headset": "󰋎",
+            "phone": "",
+            "portable": "",
+            "car": "",
+            "default": ["", "", ""]
+        },
+        "on-click": "$TERM -e $AUDIO_CTRL"
+    },
+    "temperature": {
+        "critical-threshold": 80,
+        "format": "{temperatureC}°C {icon}",
+        "format-icons": ["", "", "", ""]
+    },
+    "network": {
+        "format-wifi": "{essid} ({signalStrength}%) ",
+        "format-ethernet": "{ipaddr}/{cidr} ",
+        "tooltip-format": "{ifname} via {gwaddr} ",
+        "format-linked": "{ifname} (No IP) ",
+        "format-disconnected": "Disconnected ⚠",
+        "format-alt": "{ifname} {ipaddr}"
+    },
+    "cpu": {
+        "format": "{usage}% ",
+        "tooltip": false,
+        "on-click": "$TERM -e $PROC_CTRL"
+    },
+    "memory": {
+        "format": "{}% ",
+        "on-click": "$TERM -e $PROC_CTRL"
+    }
+}
