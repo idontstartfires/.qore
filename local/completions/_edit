@@ -1,0 +1,34 @@
+#compdef edit
+
+_edit() {
+    local cur=$words[CURRENT]
+
+    if [[ $cur == -* ]]; then
+        local -a flags
+        flags=(
+            '-Q:list all editables'
+            '-Qb:bin scripts only'
+            '-Ql:lib files only'
+            '-Qs:search by name'
+            '-Qbs:search bin scripts'
+            '-Qls:search lib files'
+        )
+        _describe 'flag' flags
+        return
+    fi
+
+    if [[ $cur == lib* ]]; then
+        _path_files -W "$QORE/local" --
+        return
+    fi
+
+    local -a scripts
+    local dir
+    for dir in ${(s.:.)SCRIPTS}; do
+        [[ -d $dir ]] && scripts+=($dir/*(N:t))
+    done
+    scripts=(${(u)scripts})
+    _describe 'script' scripts
+}
+
+_edit "$@"

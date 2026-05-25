@@ -1,0 +1,44 @@
+#!/bin/sh
+
+
+ARG=$1; [[ -n $1 ]] && shift
+
+case $ARG in
+    devices)
+        bluetoothctl devices | cut -d " " -f 2- | sort
+    ;;
+    mac)
+        bluetoothctl devices | cut -d " " -f 2 | sort
+    ;;
+    names)
+        bluetoothctl devices | cut -d " " -f 3- | sort
+    ;;
+    on)
+        bluetoothctl power on && exit $?
+    ;;
+    off)
+        bluetoothctl power off && exit $?
+    ;;
+    connect)
+        bluetoothctl connect "$1"
+        exit $?
+    ;;
+    reconnect)
+        blue disconnect $1 && blue connect $1
+        exit $?
+    ;;
+    disconnect)
+        bluetoothctl disconnect "$1"
+        exit $?
+    ;;
+    info)
+        bluetoothctl info
+    ;;
+    battery)
+        HEX=$(blue info | grep Battery | cut -d " " -f 3)
+        printf "%d" $HEX
+    ;;
+    name)
+        blue info | grep Name | cut -d " " -f 2-
+    ;;
+esac
