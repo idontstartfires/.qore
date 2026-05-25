@@ -10,7 +10,6 @@ minimum-contrast = 1
 cursor-style-blink = false
 
 copy-on-select = false
-mouse-reporting = false
 confirm-close-surface = false
 
 window-inherit-working-directory = false
