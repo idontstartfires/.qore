@@ -23,7 +23,10 @@ export GOMODCACHE=$GOPATH/pkg/mod
 export PYTHON_HISTORY=$XDG_DATA_HOME/python/history
 
 export QORE=$HOME/.qore
-export PATH="$HOME/.local/bin:$QORE/local/bin:$QORE/project/bin:$PATH"
+export SCRIPTS="$HOME/.local/bin:$QORE/local/bin:$QORE/project/bin"
+export PATH="$SCRIPTS:$PATH"
+export PYTHONPATH="$QORE/local/lib/py${PYTHONPATH:+:$PYTHONPATH}"
+export SHLIB="$QORE/local/lib/sh"
 
 export WLR_NO_HARDWARE_CURSORS=1
 export QT_QPA_PLATFORM=wayland 
