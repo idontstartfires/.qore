@@ -11,11 +11,8 @@ host=$(hostname -s)
 
 . "$lib/ui"
 
-_active() {
-    cat "$active" 2>/dev/null
-}
+_active() { cat "$active" 2>/dev/null; }
 
-# Source a profile's config and optional host override
 _load() {
     profile_name=${1:-$(_active)}
     [ -z "$profile_name" ] && { printf 'project: no active profile\n' >&2; exit 1; }
@@ -23,7 +20,6 @@ _load() {
     [ ! -f "$config_file" ] && { printf 'project: profile "%s" not found\n' "$profile_name" >&2; exit 1; }
     . "$config_file"
     [ -f "$profiles/$profile_name/config.$host" ] && . "$profiles/$profile_name/config.$host"
-    return 0
 }
 
 # Sorted profile names: manifest-ordered first, untracked profiles appended
@@ -41,13 +37,23 @@ _sorted_names() {
     rm -f "$tmp"
 }
 
-# Try to match a query against profile names using fzf.
-# Auto-selects when there is exactly one match; shows picker for multiple.
-# Returns empty string if no match or fzf is unavailable.
 _fuzzy_profile() {
-    query=$1
     type fzf >/dev/null 2>&1 || return
-    _sorted_names | fzf --query="$query" --select-1 --exit-0 --no-sort 2>/dev/null
+    _sorted_names | fzf --query="$1" --select-1 --exit-0 --no-sort 2>/dev/null
+}
+
+_load_profile() {
+    query=$1
+    if [ -d "$profiles/$query" ]; then
+        _load "$query"
+    else
+        matched=$(_fuzzy_profile "$query")
+        if [ -n "$matched" ]; then
+            _load "$matched"
+        else
+            printf 'project: no profile matching "%s"\n' "$query" >&2; exit 1
+        fi
+    fi
 }
 
 # Default standard commands — overridable in any profile via cmd_<name>()
@@ -61,6 +67,9 @@ cmd_git()  {
         git -C "$ROOT" "$@"
     fi
 }
+cmd_agent() {
+    (cd "$ROOT" && ${AI_AGENT:-claude} "$@")
+}
 
 _dispatch() {
     subcmd=$1; shift
@@ -71,17 +80,15 @@ _dispatch() {
     fi
 }
 
-cmd=${1:-profile}
-[ $# -gt 0 ] && shift
+# ── Dispatch ──────────────────────────────────────────────────────────────────
 
-case $cmd in
-    -h|--help|help)
-        "$lib/help" "$@"; exit 0 ;;
+[ $# -eq 0 ] && { "$lib/profile"; exit; }
 
-    profile)
-        "$lib/profile" "$@" ;;
+case $1 in
+    -h|--help)
+        shift; "$lib/help" "$@" ;;
 
-    list)
+    -l|--list)
         active_name=$(_active)
         tmp=$(mktemp)
         _sorted_names > "$tmp"
@@ -94,7 +101,6 @@ case $cmd in
         while IFS= read -r name; do
             activated_ts=$(grep "^$name	" "$P/manifest" 2>/dev/null | awk -F'\t' '{print $3}')
             time_ago=$(_reltime "${activated_ts:-0}")
-
             if [ "$name" = "$active_name" ]; then
                 printf "${c_green}●${c_reset} ${c_bold}${c_green}%-${max_name_width}s${c_reset}  ${c_dim}%s${c_reset}\n" \
                     "$name" "$time_ago"
@@ -104,48 +110,21 @@ case $cmd in
         done < "$tmp"
         rm -f "$tmp" ;;
 
-    set)
-        profile_name=$1
-        [ ! -d "$profiles/$profile_name" ] && {
-            printf 'project: profile "%s" not found\n' "$profile_name" >&2; exit 1
-        }
-        printf '%s\n' "$profile_name" > "$active"
-        "$lib/manifest" touch "$profile_name" ;;
+    -p|--profile)
+        shift; "$lib/profile" "$@" ;;
 
-    select)
-        mode=fzf
-        while [ $# -gt 0 ]; do
-            case $1 in
-                -m|--mode) mode=$2; shift 2 ;;
-                -h|--help) "$lib/help" select; exit 0 ;;
-                *) printf 'project select: unknown option "%s"\n' "$1" >&2; exit 1 ;;
-            esac
-        done
-        case $mode in
-            fzf)
-                type fzf >/dev/null 2>&1 || { printf 'project select: fzf not found\n' >&2; exit 1; }
-                selected=$(_sorted_names | fzf) ;;
-            rofi)
-                type rofi >/dev/null 2>&1 || { printf 'project select: rofi not found\n' >&2; exit 1; }
-                selected=$(_sorted_names | rofi -dmenu -p "project") ;;
-            wofi)
-                type wofi >/dev/null 2>&1 || { printf 'project select: wofi not found\n' >&2; exit 1; }
-                selected=$(_sorted_names | wofi --dmenu) ;;
-            *)
-                printf 'project select: unknown mode "%s" (fzf|rofi|wofi)\n' "$mode" >&2; exit 1 ;;
+    -e|--edit)
+        shift
+        case ${1-} in
+            -*|'') profile_name=$(_active) ;;
+            *)     profile_name=$1; shift ;;
         esac
-        [ -n "$selected" ] && project set "$selected" ;;
-
-    root|ide|nav)
-        _load; _dispatch "$cmd" "$@" ;;
-
-    edit)
-        profile_name=${1:-$(_active)}
         ${EDITOR:-nvim} "$profiles/$profile_name/config" ;;
 
-    new)
+    -n|--new)
+        shift
         profile_name=$1
-        [ -z "$profile_name" ] && { printf 'usage: project new <name>\n' >&2; exit 1; }
+        [ -z "$profile_name" ] && { printf 'usage: project -n <name>\n' >&2; exit 1; }
         [ -d "$profiles/$profile_name" ] && {
             printf 'project: "%s" already exists\n' "$profile_name" >&2; exit 1
         }
@@ -153,10 +132,52 @@ case $cmd in
         cp "$template/config" "$profiles/$profile_name/config"
         "$lib/manifest" add "$profile_name"
         ${EDITOR:-nvim} "$profiles/$profile_name/config"
-        project set "$profile_name" ;;
+        printf '%s\n' "$profile_name" > "$active"
+        "$lib/manifest" touch "$profile_name" ;;
 
-    trash)
-        profile_name=${1:-$(_active)}
+    -s|--set)
+        shift
+        profile_name=$1
+        [ -z "$profile_name" ] && { printf 'usage: project -s <name>\n' >&2; exit 1; }
+        [ ! -d "$profiles/$profile_name" ] && {
+            printf 'project: profile "%s" not found\n' "$profile_name" >&2; exit 1
+        }
+        printf '%s\n' "$profile_name" > "$active"
+        "$lib/manifest" touch "$profile_name" ;;
+
+    --select)
+        shift
+        mode=fzf
+        while [ $# -gt 0 ]; do
+            case $1 in
+                -m|--mode) mode=$2; shift 2 ;;
+                *) printf 'project --select: unknown option "%s"\n' "$1" >&2; exit 1 ;;
+            esac
+        done
+        case $mode in
+            fzf)
+                type fzf >/dev/null 2>&1 || { printf 'project --select: fzf not found\n' >&2; exit 1; }
+                selected=$(_sorted_names | fzf) ;;
+            rofi)
+                type rofi >/dev/null 2>&1 || { printf 'project --select: rofi not found\n' >&2; exit 1; }
+                selected=$(_sorted_names | rofi -dmenu -p "project") ;;
+            wofi)
+                type wofi >/dev/null 2>&1 || { printf 'project --select: wofi not found\n' >&2; exit 1; }
+                selected=$(_sorted_names | wofi --dmenu) ;;
+            *)
+                printf 'project --select: unknown mode "%s" (fzf|rofi|wofi)\n' "$mode" >&2; exit 1 ;;
+        esac
+        [ -n "$selected" ] && {
+            printf '%s\n' "$selected" > "$active"
+            "$lib/manifest" touch "$selected"
+        } ;;
+
+    --trash)
+        shift
+        case ${1-} in
+            -*|'') profile_name=$(_active) ;;
+            *)     profile_name=$1; shift ;;
+        esac
         [ ! -d "$profiles/$profile_name" ] && {
             printf 'project: profile "%s" not found\n' "$profile_name" >&2; exit 1
         }
@@ -165,16 +186,21 @@ case $cmd in
         [ "$(_active)" = "$profile_name" ] && : > "$active"
         printf 'Trashed %s (recoverable from system trash)\n' "$profile_name" ;;
 
-    purge)
-        profile_name=${1:-$(_active)}
+    --purge)
+        shift
+        case ${1-} in
+            -*|'') profile_name=$(_active) ;;
+            *)     profile_name=$1; shift ;;
+        esac
         "$lib/manifest" remove "$profile_name"
         [ -d "$profiles/$profile_name" ] && gio trash "$profiles/$profile_name"
         [ "$(_active)" = "$profile_name" ] && : > "$active"
         printf 'Purged %s from manifest\n' "$profile_name" ;;
 
-    recover)
+    --recover)
+        shift
         profile_name=$1
-        [ -z "$profile_name" ] && { printf 'usage: project recover <name>\n' >&2; exit 1; }
+        [ -z "$profile_name" ] && { printf 'usage: project --recover <name>\n' >&2; exit 1; }
         [ -d "$profiles/$profile_name" ] && {
             printf 'project: "%s" profile already exists\n' "$profile_name" >&2; exit 1
         }
@@ -196,25 +222,20 @@ case $cmd in
         "$lib/manifest" add "$profile_name"
         printf 'Recovered %s\n' "$profile_name" ;;
 
-    manifest)
-        "$lib/manifest" "$@" ;;
+    --manifest)
+        shift; "$lib/manifest" "$@" ;;
+
+    -a|--active)
+        shift
+        _load
+        subcmd=${1:-ide}; [ $# -gt 0 ] && shift
+        _dispatch "$subcmd" "$@" ;;
+
+    -*)
+        printf 'project: unknown flag "%s"\n' "$1" >&2; exit 1 ;;
 
     *)
-        # cmd is a profile name, a fuzzy profile prefix, or a command on the active profile.
-        # Try exact profile match first, then fuzzy, then fall through to active profile dispatch.
-        if [ -d "$profiles/$cmd" ]; then
-            _load "$cmd"
-            subcmd=${1:-ide}; [ $# -gt 0 ] && shift
-            _dispatch "$subcmd" "$@"
-        else
-            matched=$(_fuzzy_profile "$cmd")
-            if [ -n "$matched" ]; then
-                _load "$matched"
-                subcmd=${1:-ide}; [ $# -gt 0 ] && shift
-                _dispatch "$subcmd" "$@"
-            else
-                _load
-                _dispatch "$cmd" "$@"
-            fi
-        fi ;;
+        _load_profile "$1"; shift
+        subcmd=${1:-ide}; [ $# -gt 0 ] && shift
+        _dispatch "$subcmd" "$@" ;;
 esac

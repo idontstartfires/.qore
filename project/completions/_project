@@ -1,65 +1,58 @@
 #compdef project
 
 _project() {
-    local state
-    local -a commands
+    local context state state_descr line
 
-    commands=(
-        'profile:show profile info (defaults to active)'
-        'list:list all profiles sorted by recency'
-        'set:activate a profile (accepts shorthand)'
-        'select:interactively pick a profile'
-        'root:print active project root path'
-        'ide:open IDE in project root'
-        'nav:open file manager in project root'
-        'edit:edit a profile config'
-        'new:create a new profile from template'
-        'trash:send profile to system trash'
-        'purge:remove profile from manifest permanently'
-        'recover:recover a trashed profile from git history'
-        'manifest:access manifest helper'
-        'help:show help for a command'
-    )
+    _project_profiles() {
+        local -a all_profiles
+        all_profiles=("${(@f)$(ls -1 "$QORE/project/profiles" 2>/dev/null)}")
+
+        if [[ -n "$PREFIX" ]] && type fzf &>/dev/null; then
+            local -a matches
+            matches=("${(@f)$(printf '%s\n' "${all_profiles[@]}" | fzf --filter="$PREFIX" --no-sort 2>/dev/null)}")
+            if (( ${#matches} > 0 )); then
+                compadd -U -- "${matches[@]}"
+                return
+            fi
+        fi
+        _describe 'profile' all_profiles
+    }
+
+    _project_cmds() {
+        local -a cmds
+        cmds=(root ide nav git)
+        _describe 'command' cmds
+    }
 
     _arguments -C \
         '(-h --help)'{-h,--help}'[show help]' \
-        '1:command:->command' \
-        '*::args:->args'
+        '(-l --list)'{-l,--list}'[list all profiles]' \
+        '(-p --profile)'{-p,--profile}'[show profile info]::profile:->profiles' \
+        '(-e --edit)'{-e,--edit}'[edit profile config]::profile:->profiles' \
+        '(-n --new)'{-n,--new}'[create new profile]: :' \
+        '(-s --set)'{-s,--set}'[set active profile]: :->profiles' \
+        '(-a --active)'{-a,--active}'[dispatch to active profile]' \
+        '--select[interactively pick a profile]' \
+        '--trash[send profile to system trash]::profile:->profiles' \
+        '--purge[remove profile from manifest]::profile:->profiles' \
+        '--recover[recover profile from git history]: :->all' \
+        '--manifest[access manifest helper]: :->manifest' \
+        '1: :->profiles' \
+        '*: :->cmds'
 
     case $state in
-        command)
-            _describe 'command' commands ;;
-        args)
-            case $words[1] in
-                profile)
-                    local -a profiles
-                    profiles=("${(@f)$(project list 2>/dev/null | sed 's/^[● ] *//' | awk '{print $1}')}")
-                    _arguments \
-                        '1:profile name:->profile' \
-                        '-n[name only]' \
-                        '-v[verbose: all manifest fields]' \
-                        '-g[include git summary]' \
-                        '-h[show help]'
-                    [[ $state == profile ]] && _describe 'profile' profiles ;;
-                set|edit|trash|purge)
-                    local -a profiles
-                    profiles=("${(@f)$(project list 2>/dev/null | sed 's/^[● ] *//' | awk '{print $1}')}")
-                    _describe 'profile' profiles ;;
-                recover)
-                    local -a all
-                    all=("${(@f)$(project manifest list 2>/dev/null)}")
-                    _describe 'profile' all ;;
-                select)
-                    _arguments \
-                        '(-m --mode)'{-m,--mode}'[selector UI]:mode:(fzf wofi)' \
-                        '(-h --help)'{-h,--help}'[show help]' ;;
-                manifest)
-                    local -a manifest_cmds
-                    manifest_cmds=(list show add touch mark remove exists get)
-                    _describe 'manifest command' manifest_cmds ;;
-                help)
-                    _describe 'command' commands ;;
-            esac ;;
+        profiles)
+            _project_profiles ;;
+        cmds)
+            _project_cmds ;;
+        all)
+            local -a all
+            all=("${(@f)$(project --manifest list 2>/dev/null)}")
+            _describe 'profile' all ;;
+        manifest)
+            local -a mcmds
+            mcmds=(list show add touch mark remove exists get)
+            _describe 'manifest command' mcmds ;;
     esac
 }
 
