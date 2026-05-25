@@ -1,0 +1,47 @@
+#!/bin/sh
+
+TMP=$HOME/.cache/network
+
+DEVICE=$(iwctl device list | grep station | awk '{print $2}')
+
+function connect() {
+    [[ -n $1 ]] && iwctl station $DEVICE connect "$1" && exit
+    [[ -z $1 ]] &&
+        (for n in $(network known); do
+            [[ -n `network list | grep $n` ]] && network connect "$n" && break;
+        done)
+}
+
+function neighbors() {
+    mkdir -p $TMP
+    cd $TMP
+    IP_MAP=`echo $(network address) | awk '{split($0,a,"."); print a[1]"."a[2]"."a[3]".*";}'`
+    RET=`doas nmap -sn $IP_MAP`
+    echo "$RET" | grep 'MAC' | awk '{print $3}' > neighbor_macs
+    echo "$RET" | grep 'Nmap scan report' | awk '{print substr($0, index($0,$5))}' | tr ' ' '~' > neighbor_ips
+    echo "$RET" | grep 'MAC' | awk '{print substr($0, index($0,$4))}' | tr ' ' '~' > neighbor_mans
+    paste neighbor_macs neighbor_ips neighbor_mans | column -t -N 'MAC Address','IP Address','Interface Manufacturer' | tr '~' ' '
+}
+
+
+case ${1:-status} in
+    connect)
+        connect "$2";;
+    scan)
+        iwctl station $DEVICE scan;;
+    list)
+        echo ""
+        iwctl station $DEVICE get-networks | tail -n +5;;
+    status)
+        echo ""
+        iwctl station $DEVICE show | tail -n +5
+        ping ${2:-wikipedia.org};;
+    known)
+        iwctl known-networks list | tail -n +5 | head -n -1 | awk '{print $1}';;
+    forget)
+        iwctl known-networks "$2" forget;;
+    address)
+        ip addr | grep "$DEVICE" | awk '/inet/{print substr($2,1)}';;
+    neighbors)
+        neighbors;;
+esac

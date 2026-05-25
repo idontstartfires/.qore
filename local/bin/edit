@@ -1,0 +1,122 @@
+#!/bin/zsh
+
+_edit_list_dir() {
+    local label=$1 dir=$2 pattern=$3
+    local files=(${dir}/*(N:t))
+    [[ -n $pattern ]] && files=(${(iM)files:#*${pattern}*})
+    (( ${#files[@]} )) || return
+    echo "$label:"
+    printf '  %s\n' "${files[@]}"
+}
+
+_edit_query() {
+    local mods=$1 pattern=${2:-}
+    local show_bin=true show_lib=true
+
+    [[ $mods == *b* && $mods != *l* ]] && show_lib=false
+    [[ $mods == *l* && $mods != *b* ]] && show_bin=false
+
+    if $show_bin; then
+        local dir
+        for dir in ${(s.:.)SCRIPTS}; do
+            [[ -d $dir ]] && _edit_list_dir "${dir/$HOME/~}" "$dir" "$pattern"
+        done
+    fi
+
+    if $show_lib; then
+        local lang
+        for lang in py sh; do
+            local libdir="$QORE/local/lib/$lang"
+            [[ -d $libdir ]] && _edit_list_dir "lib/$lang" "$libdir" "$pattern"
+        done
+    fi
+}
+
+_edit_lib() {
+    local path=${1#lib/}
+    local lang=${path%%/*}
+    local name=${path#*/}
+
+    if [[ $lang == $name ]]; then
+        echo "usage: edit lib/<lang>/<name>"
+        return 1
+    fi
+
+    case $lang in
+        py) [[ $name != *.* ]] && name="$name.py" ;;
+        sh) ;;
+        *)
+            echo "unsupported lib: $lang (supported: py, sh)"
+            return 1
+            ;;
+    esac
+
+    local target="$QORE/local/lib/$lang/$name"
+
+    if [[ -f $target ]]; then
+        $EDITOR "$target"
+        return
+    fi
+
+    read "reply?$target not found — create it? [y/N] "
+    [[ $reply =~ ^[Yy]$ ]] || return
+
+    mkdir -p "${target:h}"
+    touch "$target"
+    $EDITOR "$target"
+}
+
+_edit_bin() {
+    local name=$1 found=""
+
+    local dir
+    for dir in ${(s.:.)SCRIPTS}; do
+        if [[ -f "$dir/$name" ]]; then
+            found="$dir/$name"
+            break
+        fi
+    done
+
+    if [[ -n $found ]]; then
+        $EDITOR "$found"
+        return
+    fi
+
+    local conflict
+    conflict=$(command -v "$name" 2>/dev/null)
+    if [[ -n $conflict ]]; then
+        echo "conflict: '$name' exists at $conflict"
+        return 1
+    fi
+
+    read "reply?'$name' not found — create it? [y/N] "
+    [[ $reply =~ ^[Yy]$ ]] || return
+
+    read "shebang?shebang [zsh]: "
+    local interp=${shebang:-zsh}
+
+    local target="$QORE/local/bin/$name"
+    printf '#!/usr/bin/env %s\n\n' "$interp" > "$target"
+    chmod 755 "$target"
+    $EDITOR "$target"
+}
+
+case $1 in
+    -Q*)
+        mods=${1#-Q}
+        shift
+        _edit_query "$mods" "$@"
+        ;;
+    lib/*)
+        _edit_lib "$1"
+        ;;
+    ""|--help|-h)
+        echo "usage:"
+        echo "  edit <name>              edit or create a bin script"
+        echo "  edit lib/<lang>/<name>   edit or create a lib file (langs: py, sh)"
+        echo "  edit -Q[bls] [pattern]   query editables"
+        ;;
+    *)
+        _edit_bin "$1"
+        ;;
+esac
