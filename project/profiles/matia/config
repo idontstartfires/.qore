@@ -4,7 +4,6 @@ ROOT=$HOME/untill/matia
 cmd_db() {
     cd "$ROOT/.mongo"
     source "../.env"
-    echo $MONGO_PROTOCOL
     URI="$MONGO_PROTOCOL://$MONGO_USER:$MONGO_PASS@$MONGO_HOST"
     VERB=${1:-sh}
     [[ -n $1 ]] && shift
