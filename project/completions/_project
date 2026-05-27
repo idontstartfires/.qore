@@ -24,35 +24,69 @@ _project() {
         _describe 'command' cmds
     }
 
+    # Completion for -C <name>: warn if name exists, suggest trashed profiles
+    _create_name() {
+        local profiles="$QORE/project/profiles"
+
+        # Warn if the typed name already exists as an active profile
+        if [[ -n "$PREFIX" && -d "$profiles/$PREFIX" ]]; then
+            _message "profile '$PREFIX' already exists"
+            return
+        fi
+
+        # Suggest trashed profiles that came from this project's profiles dir
+        local -a trashed_names trashed_descr
+        local name
+        while IFS= read -r name; do
+            [[ -n "$name" ]] || continue
+            trashed_names+=("$name")
+            trashed_descr+=("$name:in trash")
+        done < <("$QORE/project/libexec/trash" list 2>/dev/null)
+
+        if (( ${#trashed_names} > 0 )); then
+            compadd -l -d trashed_descr -- "${trashed_names[@]}"
+            return
+        fi
+
+        _message 'new profile name'
+    }
+
+    # Files within a profile dir for -E's second arg
+    _edit_file() {
+        local prof=${words[(r)-E]:+} dir
+        # Find the profile name following -E in the command line
+        local idx=${words[(i)-E*]}
+        local after=${words[$((idx+1))]:-}
+        dir="$QORE/project/profiles/$after"
+        if [[ -d "$dir" ]]; then
+            local -a files
+            files=("${(@f)$(ls -1 "$dir" 2>/dev/null)}")
+            _describe 'file' files
+        else
+            _message 'file in profile directory'
+        fi
+    }
+
     _arguments -C \
-        '(-h --help)'{-h,--help}'[show help]' \
-        '(-l --list)'{-l,--list}'[list all profiles]' \
-        '(-p --profile)'{-p,--profile}'[show profile info]::profile:->profiles' \
-        '(-e --edit)'{-e,--edit}'[edit profile config]::profile:->profiles' \
-        '(-n --new)'{-n,--new}'[create new profile]: :' \
-        '(-s --set)'{-s,--set}'[set active profile]: :->profiles' \
-        '(-a --active)'{-a,--active}'[dispatch to active profile]' \
-        '--select[interactively pick a profile]' \
-        '--trash[send profile to system trash]::profile:->profiles' \
-        '--purge[remove profile from manifest]::profile:->profiles' \
-        '--recover[recover profile from git history]: :->all' \
-        '--manifest[access manifest helper]: :->manifest' \
+        '(-h --help)--help[show help]' \
+        '(-h --help)-h[show help, or list commands for a profile]::profile:->profiles' \
+        '-E+[edit profile init or a named file]: :->profiles' \
+        '-C+[create or restore profile]: :->create_name' \
+        '-R+[remove profile]::profile:->profiles' \
+        '-Q+[query profiles]::search term: ' \
+        '-P+[inspect a profile]::profile:->profiles' \
+        '-S+[set or select active profile]::profile:->profiles' \
+        '-A[dispatch to active profile]' \
         '1: :->profiles' \
         '*: :->cmds'
 
     case $state in
         profiles)
             _project_profiles ;;
+        create_name)
+            _create_name ;;
         cmds)
             _project_cmds ;;
-        all)
-            local -a all
-            all=("${(@f)$(project --manifest list 2>/dev/null)}")
-            _describe 'profile' all ;;
-        manifest)
-            local -a mcmds
-            mcmds=(list show add touch mark remove exists get)
-            _describe 'manifest command' mcmds ;;
     esac
 }
 

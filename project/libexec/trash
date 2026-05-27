@@ -1,0 +1,61 @@
+#!/bin/sh
+# trash — profile trash operations
+#
+# commands:
+#   send <name>     move profile to system trash; clear active if needed
+#   restore <name>  move profile back from system trash
+#   list            print names of trashed profiles, one per line
+#   exists <name>   exit 0 if profile is in trash, 1 otherwise
+
+lib=$QORE/project/libexec
+. "$lib/common"
+trash_dir="${XDG_DATA_HOME:-$HOME/.local/share}/Trash"
+
+# Find the .trashinfo file for a profile by its original path, or print nothing.
+_trashinfo_for() {
+    grep -rl "Path=$profiles/$1$" "$trash_dir/info/" 2>/dev/null | head -1
+}
+
+case ${1:-} in
+    send)
+        name=$2
+        gio trash "$profiles/$name" || exit 1
+        [ "$(active_profile)" = "$name" ] && : > "$active"
+        exit 0 ;;
+
+    restore)
+        name=$2
+        info=$(_trashinfo_for "$name")
+        [ -z "$info" ] && exit 1
+        fname=$(basename "${info%.trashinfo}")
+        trash_file="$trash_dir/files/$fname"
+        [ -d "$trash_file" ] || exit 1
+        mv "$trash_file" "$profiles/$name"
+        rm -f "$info"
+        exit 0 ;;
+
+    list)
+        [ -d "$trash_dir/info" ] || exit 0
+        for info in "$trash_dir/info/"*.trashinfo; do
+            [ -f "$info" ] || continue
+            path=$(grep '^Path=' "$info" | cut -d= -f2-)
+            case "$path" in
+                "$profiles/"*) printf '%s\n' "${path##*/}" ;;
+            esac
+        done
+        exit 0 ;;
+
+    exists)
+        name=$2
+        info=$(_trashinfo_for "$name")
+        [ -z "$info" ] && exit 1
+        fname=$(basename "${info%.trashinfo}")
+        [ -d "$trash_dir/files/$fname" ] && exit 0
+        exit 1 ;;
+
+    '')
+        printf 'usage: trash <send|restore|list|exists> [name]\n' >&2; exit 1 ;;
+
+    *)
+        printf 'trash: unknown command "%s"\n' "$1" >&2; exit 1 ;;
+esac

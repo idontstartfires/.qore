@@ -1,0 +1,112 @@
+#!/bin/sh
+
+show_help() {
+    echo "Usage: wallcraft <command> [options]"
+    echo ""
+    echo "Commands:"
+    echo "  info <video>                 Print resolution and FPS of a video file"
+    echo "  monitors                     List available monitors (requires hyprctl)"
+    echo "  apply <monitor> <gif>        Apply a GIF to a specific monitor using awww"
+    echo "  generate <input> [options]   Convert a video to an optimized awww GIF"
+    echo ""
+    echo "Generate Options:"
+    echo "  -o, --output <file>          Output GIF filename (Required)"
+    echo "  -f, --fps <num>              Target FPS (Default: 12)"
+    echo "  -s, --scale <w:h>            Scale argument (e.g., -1:2800)"
+    echo "  -c, --crop <w:h:x:y>         Crop argument (e.g., 2560:1440:400:550)"
+    echo "  -h, --help                   Show this help message"
+}
+
+command_info() {
+    local file="$1"
+    if [[ -z "$file" || ! -f "$file" ]]; then
+        echo "Error: Please provide a valid video file."
+        exit 1
+    fi
+    ffprobe -v error -select_streams v:0 \
+        -show_entries stream=width,height,r_frame_rate \
+        -of default=noprint_wrappers=1:nokey=1 "$file" | \
+        awk 'NR==1 {w=$1} NR==2 {h=$1} NR==3 {split($1,a,"/"); print "Resolution: " w "x" h; if(a[2]>0) print "FPS: " a[1]/a[2]; else print "FPS: " a[1]}'
+}
+
+command_monitors() {
+    if ! command -v hyprctl &> /dev/null; then
+        echo "Error: hyprctl not found. This command is designed for Hyprland."
+        exit 1
+    fi
+    hyprctl monitors | grep -E "Monitor|geometry|scale" | awk '
+        /Monitor/ {name=$2}
+        /geometry/ {geom=$2}
+        /scale:/ {scale=$2; print "Display: " name " | Size: " geom " | Scale: " scale}'
+}
+
+command_apply() {
+    local monitor="$1"
+    local gif="$2"
+    if [[ -z "$monitor" || -z "$gif" ]]; then
+        echo "Usage: wallcraft apply <monitor_name> <gif_file>"
+        exit 1
+    fi
+    if ! command -v awww &> /dev/null; then
+        echo "Error: awww not found in PATH."
+        exit 1
+    fi
+    echo "Applying $gif to $monitor..."
+    awww img "$gif" -o "$monitor" --transition-type wipe
+}
+
+command_generate() {
+    local input="$1"
+    shift
+
+    if [[ -z "$input" || ! -f "$input" ]]; then
+        echo "Error: Please provide a valid input video file."
+        exit 1
+    fi
+
+    local output=""
+    local fps="12"
+    local scale=""
+    local crop=""
+
+    while [[ "$#" -gt 0 ]]; do
+        case $1 in
+            -o|--output) output="$2"; shift ;;
+            -f|--fps) fps="$2"; shift ;;
+            -s|--scale) scale="$2"; shift ;;
+            -c|--crop) crop="$2"; shift ;;
+            *) echo "Unknown parameter passed: $1"; exit 1 ;;
+        esac
+        shift
+    done
+
+    if [[ -z "$output" ]]; then
+        echo "Error: Output file (-o) is required."
+        exit 1
+    fi
+
+    # Build the dynamic filter string
+    local filters="fps=$fps"
+    if [[ -n "$scale" ]]; then
+        filters="$filters,scale=$scale"
+    fi
+    if [[ -n "$crop" ]]; then
+        filters="$filters,crop=$crop"
+    fi
+    
+    # Append the palette generation for high-quality dark GIFs
+    filters="$filters,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse"
+
+    echo "Generating $output with filters: $filters"
+    ffmpeg -i "$input" -vf "$filters" -loop 0 "$output"
+    echo "Done! Generated $output"
+}
+
+# Main routing logic
+case "$1" in
+    info) shift; command_info "$@" ;;
+    monitors) command_monitors ;;
+    apply) shift; command_apply "$@" ;;
+    generate) shift; command_generate "$@" ;;
+    *) show_help ;;
+esac

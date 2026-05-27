@@ -1,9 +1,12 @@
 *.pkg.tar.zst
 
+# Plugins that should be installed independently, not included in this repo
 /config/yazi/plugins
 /config/yazi/package.toml
 
-# Project state files
-/project/active
-/project/manifest
+# Project state files (machine-local)
+/project/.active
+/project/profiles/**/.meta
+
+**/*.env
 

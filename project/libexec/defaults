@@ -1,0 +1,16 @@
+#!/bin/sh
+# defaults — standard profile commands, overridable in profile init scripts
+
+cmd_root() { printf '%s\n' "$ROOT"; }
+cmd_ide()  { cd "$ROOT" && ${IDE:-nvim}; }
+cmd_nav()  { ${FILE_MANAGER:-lf} "$ROOT"; }
+cmd_git()  {
+    if [ $# -eq 0 ] || [ "$1" = "lazy" ]; then
+        (cd "$ROOT" && ${LAZYGIT:-lazygit})
+    else
+        git -C "$ROOT" "$@"
+    fi
+}
+cmd_agent() {
+    (cd "$ROOT" && ${AI_AGENT:-claude} "$@")
+}

@@ -1,0 +1,49 @@
+#!/bin/sh
+# remove — send a project profile to the system trash
+
+lib=$QORE/project/libexec
+. "$lib/common"
+
+show_help() {
+    cat <<'EOF'
+usage: project -R [name]
+
+send a project profile to the system trash (defaults to active profile)
+profiles can be restored with: project -Cr <name>
+
+options:
+  -h    show this help
+EOF
+}
+
+# ── argument parsing ──────────────────────────────────────────────────────────
+
+profile_name=""
+
+while [ $# -gt 0 ]; do
+    case $1 in
+        -h|--help) show_help; exit 0 ;;
+        -*)
+            remaining="${1#-}"; shift
+            while [ -n "$remaining" ]; do
+                flag="${remaining%"${remaining#?}"}"
+                remaining="${remaining#?}"
+                case $flag in
+                    h) show_help; exit 0 ;;
+                    *) printf 'remove: unknown flag "-%s"\n' "$flag" >&2; exit 1 ;;
+                esac
+            done ;;
+        *)
+            [ -z "$profile_name" ] || { printf 'remove: unexpected argument "%s"\n' "$1" >&2; exit 1; }
+            profile_name=$1; shift ;;
+    esac
+done
+
+[ -z "$profile_name" ] && profile_name=$(active_profile)
+[ -z "$profile_name" ] && { printf 'remove: no active profile\n' >&2; exit 1; }
+[ ! -d "$profiles/$profile_name" ] && { printf 'remove: profile "%s" not found\n' "$profile_name" >&2; exit 1; }
+
+# ── remove ────────────────────────────────────────────────────────────────────
+
+"$lib/trash" send "$profile_name"
+printf 'Trashed %s (recoverable from system trash)\n' "$profile_name"

@@ -1,0 +1,140 @@
+#!/bin/sh
+# query — list, search, and display project profiles
+
+lib=$QORE/project/libexec
+. "$lib/common"
+
+# ── profile metadata operations ───────────────────────────────────────────────
+# These subcommands are called internally by other project modules.
+
+_meta() { printf '%s/%s/.meta' "$profiles" "$1"; }
+
+case ${1:-} in
+    list)
+        # Scan all profile dirs; sort by activated timestamp desc (empty → last)
+        ls -A "$profiles" 2>/dev/null | while IFS= read -r name; do
+            [ -d "$profiles/$name" ] || continue
+            meta=$(_meta "$name")
+            activated=0
+            if [ -f "$meta" ]; then
+                v=$(grep '^activated=' "$meta" | cut -d= -f2)
+                [ -n "$v" ] && activated=$v
+            fi
+            printf '%s\t%s\n' "$activated" "$name"
+        done | sort -t'	' -k1 -rn | awk -F'\t' '{print $2}'
+        exit ;;
+
+    show)
+        ls -A "$profiles" 2>/dev/null | while IFS= read -r name; do
+            [ -d "$profiles/$name" ] || continue
+            meta=$(_meta "$name")
+            created="" activated=""
+            if [ -f "$meta" ]; then
+                created=$(grep '^created=' "$meta" | cut -d= -f2)
+                activated=$(grep '^activated=' "$meta" | cut -d= -f2)
+            fi
+            printf '%s\t%s\t%s\n' "$name" "${created:--}" "${activated:--}"
+        done | column -t -s'	'
+        exit ;;
+
+    add)
+        n=$2; meta=$(_meta "$n")
+        [ -f "$meta" ] && exit 0
+        printf 'created=%s\nactivated=\n' "$(date +%Y-%m-%d)" > "$meta"
+        exit ;;
+
+    touch)
+        n=$2; meta=$(_meta "$n"); now=$(date +%s)
+        if [ ! -f "$meta" ]; then
+            printf 'created=%s\nactivated=%s\n' "$(date +%Y-%m-%d)" "$now" > "$meta"
+        elif grep -q '^activated=' "$meta"; then
+            sed -i "s/^activated=.*/activated=$now/" "$meta"
+        else
+            printf 'activated=%s\n' "$now" >> "$meta"
+        fi
+        exit ;;
+
+    get)
+        n=$2; field=$3; meta=$(_meta "$n")
+        [ -f "$meta" ] || exit 1
+        grep "^${field}=" "$meta" | cut -d= -f2
+        exit ;;
+esac
+
+# ── display ───────────────────────────────────────────────────────────────────
+
+show_help() {
+    cat <<'EOF'
+usage: project -Q[s] [term]
+
+list and search project profiles
+
+flags:
+  -s <term>   search profiles by name (fuzzy)
+  -h          show this help
+
+examples:
+  project -Q             list all profiles
+  project -Qs farm       profiles matching "farm"
+  project -Q -s farm     same as above
+EOF
+}
+
+_filter() {
+    if type fzf >/dev/null 2>&1; then
+        fzf --filter="$1" --no-sort
+    else
+        grep -i "$1"
+    fi
+}
+
+# ── argument parsing ──────────────────────────────────────────────────────────
+
+search_term=""
+
+while [ $# -gt 0 ]; do
+    case $1 in
+        -h|--help) show_help; exit 0 ;;
+        -s) search_term=$2; shift 2 ;;
+        -*)
+            remaining="${1#-}"; shift
+            while [ -n "$remaining" ]; do
+                flag="${remaining%"${remaining#?}"}"
+                remaining="${remaining#?}"
+                case $flag in
+                    h) show_help; exit 0 ;;
+                    s) search_term=$1; shift ;;
+                    *) printf 'query: unknown flag "-%s"\n' "$flag" >&2; exit 1 ;;
+                esac
+            done ;;
+        *) printf 'query: unexpected argument "%s"\n' "$1" >&2; exit 1 ;;
+    esac
+done
+
+# ── output ────────────────────────────────────────────────────────────────────
+
+active_name=$(active_profile)
+names_file=$(mktemp)
+
+if [ -n "$search_term" ]; then
+    profile_names | _filter "$search_term" > "$names_file"
+else
+    profile_names > "$names_file"
+fi
+
+max_name_width=0
+while IFS= read -r name; do
+    [ ${#name} -gt $max_name_width ] && max_name_width=${#name}
+done < "$names_file"
+
+while IFS= read -r name; do
+    activated_ts=$(grep '^activated=' "$profiles/$name/.meta" 2>/dev/null | cut -d= -f2)
+    time_ago=$(reltime "${activated_ts:-0}")
+    if [ "$name" = "$active_name" ]; then
+        printf "${c_green}●${c_reset} ${c_bold}${c_green}%-${max_name_width}s${c_reset}  ${c_dim}%s${c_reset}\n" \
+            "$name" "$time_ago"
+    else
+        printf "  %-${max_name_width}s  ${c_dim}%s${c_reset}\n" "$name" "$time_ago"
+    fi
+done < "$names_file"
+rm -f "$names_file"

@@ -4,11 +4,8 @@
 # usage: profile [name] [-nvg] [-h]
 # name defaults to the active profile when omitted
 
-profiles_dir=$QORE/project/profiles
-manifest_file=$QORE/project/manifest
-active_file=$QORE/project/active
-
-. "$QORE/project/libexec/ui"
+lib=$QORE/project/libexec
+. "$lib/common"
 
 # ── helpers ───────────────────────────────────────────────────────────────
 
@@ -21,7 +18,7 @@ name defaults to the active profile when omitted
 
 flags (combinable, eg. -vg):
   -n   name only
-  -v   verbose: all manifest fields
+  -v   verbose: created date, root, activation time
   -g   include git summary
   -h   show this help
 EOF
@@ -72,6 +69,10 @@ while [ $# -gt 0 ]; do
     case $1 in
         --help)
             show_help; exit 0 ;;
+        --name)
+            [ -n "$2" ] || { printf 'profile: --name requires a value\n' >&2; exit 1; }
+            [ -z "$profile_name" ] || { printf 'profile: name already specified\n' >&2; exit 1; }
+            profile_name=$2; shift 2 ;;
         -*)
             remaining_flags="${1#-}"
             shift
@@ -96,11 +97,12 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-[ -z "$profile_name" ] && profile_name=$(cat "$active_file" 2>/dev/null)
-[ -z "$profile_name" ] && { printf 'profile: no active profile set\n' >&2; exit 1; }
+[ -z "$profile_name" ] && profile_name=$(active_profile)
+[ -z "$profile_name" ] && { printf 'profile: no active profile\n' >&2; exit 1; }
+profile_name=$(resolve_profile "$profile_name") \
+    || { printf 'profile: "%s" not found\n' "$profile_name" >&2; exit 1; }
 
-config_file="$profiles_dir/$profile_name/config"
-[ -f "$config_file" ] || { printf 'profile: "%s" not found\n' "$profile_name" >&2; exit 1; }
+config_file="$profiles/$profile_name/init"
 
 # ── name only ─────────────────────────────────────────────────────────────
 
@@ -115,10 +117,10 @@ fi
 project_root=$(. "$config_file" 2>/dev/null; printf '%s' "$ROOT")
 root_display=$(  printf '%s' "$project_root" | sed "s|^$HOME|~|")
 
-manifest_row=$(grep "^$profile_name	" "$manifest_file" 2>/dev/null)
-created=$(     printf '%s' "$manifest_row" | awk -F'\t' '{print $2}')
-activated_ts=$(printf '%s' "$manifest_row" | awk -F'\t' '{print $3}')
-time_ago=$(_reltime "${activated_ts:-0}")
+meta_file="$profiles/$profile_name/.meta"
+created=$(     grep '^created='   "$meta_file" 2>/dev/null | cut -d= -f2)
+activated_ts=$(grep '^activated=' "$meta_file" 2>/dev/null | cut -d= -f2)
+time_ago=$(reltime "${activated_ts:-0}")
 
 # ── verbose view ──────────────────────────────────────────────────────────
 
