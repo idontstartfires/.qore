@@ -75,7 +75,7 @@ cmd_node() {
                 uv run src/main.py \
                 --mode=test \
                 --config="$NODE_NAME" \
-                $@ -l PeerDiscovery=30 Uplink=30 Interlink=30
+                $@ -l PeerDiscovery=30 Uplink=30 Interlink=30 Inspect=30
                 sleep 2
             done
     esac 

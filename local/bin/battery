@@ -1,0 +1,16 @@
+#!/bin/sh
+
+ALERT_LEVEL=20
+
+readbatt() {
+  cd /sys/class/power_supply
+  for b in $(ls | grep BAT) ; do
+    for f in $@; do
+      cat $b/$f
+    done
+  done
+}
+
+case $1 in
+  *) readbatt ${@:-capacity};;
+esac
