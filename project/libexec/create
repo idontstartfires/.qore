@@ -1,0 +1,121 @@
+#!/bin/sh
+# create — create or restore a project profile
+
+lib=$QORE/project/libexec
+. "$lib/common"
+
+show_help() {
+    cat <<'EOF'
+usage: project -C[fra] <name>
+
+create or restore a project profile (name must be exact)
+
+  -C <name>      restore from trash if available, else create from template
+  -Cf <name>     fresh — skip trash, always create from template
+  -Cr <name>     recover — restore from trash, then git history; never creates fresh
+
+options:
+  -f, --fresh      skip trash check, create from template regardless
+  -r, --recover    restore from trash or git history only (no fresh creation)
+  -a, --activate   set as active profile after creation
+  -h               show this help
+
+examples:
+  project -C farm           restore "farm" from trash, or create fresh
+  project -Cf farm          always create fresh "farm" from template
+  project -Cr farm          restore "farm" from trash or git history (error if not found)
+  project -Ca farm          create fresh "farm" and set it as active
+EOF
+}
+
+_restore_from_trash() {
+    "$lib/trash" restore "$1" || return 1
+    if $activate; then
+        printf '%s\n' "$1" > "$active"
+        "$lib/query" touch "$1"
+    fi
+    printf 'Restored %s from trash\n' "$1"
+}
+
+_restore_from_git() {
+    local commit
+    commit=$(
+        git -C "$QORE" log --all --follow --oneline -- "project/profiles/$1/init" 2>/dev/null \
+        | head -1 \
+        | awk '{print $1}'
+    )
+    [ -z "$commit" ] && return 1
+    printf 'Recovering %s from commit %s...\n' "$1" "$commit"
+    mkdir -p "$profiles/$1"
+    if git -C "$QORE" cat-file -e "$commit:project/profiles/$1/init" 2>/dev/null; then
+        git -C "$QORE" show "$commit:project/profiles/$1/init" > "$profiles/$1/init"
+    else
+        git -C "$QORE" show "$commit:project/profiles/$1/config" > "$profiles/$1/init"
+    fi
+    "$lib/query" add "$1"
+    if $activate; then
+        printf '%s\n' "$1" > "$active"
+        "$lib/query" touch "$1"
+    fi
+    printf 'Recovered %s from git history\n' "$1"
+}
+
+_create_from_template() {
+    mkdir -p "$profiles/$1"
+    cp "$P/template/init" "$profiles/$1/init"
+    "$lib/query" add "$1"
+    ${EDITOR:-nvim} "$profiles/$1/init"
+    if $activate; then
+        printf '%s\n' "$1" > "$active"
+        "$lib/query" touch "$1"
+    fi
+    printf 'Created %s\n' "$1"
+}
+
+# ── argument parsing ──────────────────────────────────────────────────────────
+
+mode=auto   # auto | fresh | recover
+activate=false
+profile_name=""
+
+while [ $# -gt 0 ]; do
+    case $1 in
+        -h|--help)    show_help; exit 0 ;;
+        -f|--fresh)   mode=fresh;   shift ;;
+        -r|--recover) mode=recover; shift ;;
+        -a|--activate) activate=true; shift ;;
+        -*)
+            remaining="${1#-}"; shift
+            while [ -n "$remaining" ]; do
+                flag="${remaining%"${remaining#?}"}"
+                remaining="${remaining#?}"
+                case $flag in
+                    h) show_help; exit 0 ;;
+                    f) mode=fresh ;;
+                    r) mode=recover ;;
+                    a) activate=true ;;
+                    *) printf 'create: unknown flag "-%s"\n' "$flag" >&2; exit 1 ;;
+                esac
+            done ;;
+        *)
+            [ -z "$profile_name" ] || { printf 'create: unexpected argument "%s"\n' "$1" >&2; exit 1; }
+            profile_name=$1; shift ;;
+    esac
+done
+
+[ -z "$profile_name" ] && { printf 'usage: project -C[fra] <name>\n' >&2; exit 1; }
+[ -d "$profiles/$profile_name" ] && { printf 'create: "%s" already exists\n' "$profile_name" >&2; exit 1; }
+
+# ── create / restore ─────────────────────────────────────────────────────────
+
+case $mode in
+    fresh)
+        _create_from_template "$profile_name" ;;
+    recover)
+        _restore_from_trash "$profile_name" \
+            || _restore_from_git "$profile_name" \
+            || { printf 'create: no recoverable version of "%s" found\n' "$profile_name" >&2; exit 1; } ;;
+    auto)
+        _restore_from_trash "$profile_name" \
+            || _create_from_template "$profile_name" ;;
+esac

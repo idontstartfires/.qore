@@ -7,8 +7,8 @@
         "format": "{} 󱗆"
     },
     "custom/project": {
-        "exec": "project profile -n",
-        "on-click": "project select -m $LAUNCHER",
+        "exec": "project -Pn",
+        "on-click": "project -Sm $LAUNCHER",
         "interval": 2
     },
     "hyprland/submap": {

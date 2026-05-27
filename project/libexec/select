@@ -1,0 +1,80 @@
+#!/bin/sh
+# select — set or interactively choose the active profile
+
+lib=$QORE/project/libexec
+. "$lib/common"
+
+show_help() {
+    cat <<'EOF'
+usage: project -S[m] [name]
+
+set or interactively select the active profile
+
+  -S <name>            set active profile (fuzzy match)
+  -S                   interactively select (fzf, default)
+  -Sm <mode>           select with a specific picker
+
+options:
+  -m, --mode <mode>    picker: fzf (default), rofi, wofi
+  -h                   show this help
+
+examples:
+  project -S farm          set active to profile matching "farm"
+  project -S               pick interactively with fzf
+  project -Sm rofi         pick with rofi
+  project -S -m rofi       same as above
+EOF
+}
+
+# ── argument parsing ──────────────────────────────────────────────────────
+
+mode=fzf
+profile_name=""
+
+while [ $# -gt 0 ]; do
+    case $1 in
+        -h|--help) show_help; exit 0 ;;
+        -m|--mode) mode=$2; shift 2 ;;
+        -*)
+            remaining="${1#-}"; shift
+            while [ -n "$remaining" ]; do
+                flag="${remaining%"${remaining#?}"}"
+                remaining="${remaining#?}"
+                case $flag in
+                    h) show_help; exit 0 ;;
+                    m) mode=$1; shift ;;
+                    *) printf 'select: unknown flag "-%s"\n' "$flag" >&2; exit 1 ;;
+                esac
+            done ;;
+        *)
+            [ -z "$profile_name" ] || { printf 'select: unexpected argument "%s"\n' "$1" >&2; exit 1; }
+            profile_name=$1; shift ;;
+    esac
+done
+
+# ── set or select ─────────────────────────────────────────────────────────
+
+if [ -n "$profile_name" ]; then
+    profile_name=$(resolve_profile "$profile_name") \
+        || { printf 'select: no profile matching "%s"\n' "$profile_name" >&2; exit 1; }
+    printf '%s\n' "$profile_name" > "$active"
+    "$lib/query" touch "$profile_name"
+else
+    case $mode in
+        fzf)
+            type fzf >/dev/null 2>&1 || { printf 'select: fzf not found\n' >&2; exit 1; }
+            selected=$(profile_names | fzf) ;;
+        rofi)
+            type rofi >/dev/null 2>&1 || { printf 'select: rofi not found\n' >&2; exit 1; }
+            selected=$(profile_names | rofi -dmenu -p "project") ;;
+        wofi)
+            type wofi >/dev/null 2>&1 || { printf 'select: wofi not found\n' >&2; exit 1; }
+            selected=$(profile_names | wofi --dmenu) ;;
+        *)
+            printf 'select: unknown mode "%s" (fzf|rofi|wofi)\n' "$mode" >&2; exit 1 ;;
+    esac
+    [ -n "$selected" ] && {
+        printf '%s\n' "$selected" > "$active"
+        "$lib/query" touch "$selected"
+    }
+fi

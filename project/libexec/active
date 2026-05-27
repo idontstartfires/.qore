@@ -1,0 +1,37 @@
+#!/bin/sh
+# active — dispatch a command to the active profile
+
+lib=$QORE/project/libexec
+. "$lib/common"
+
+show_help() {
+    cat <<'EOF'
+usage: project -A [subcmd] [args]
+
+dispatch a command to the active profile (default: ide)
+
+commands:
+  root    print project root path
+  ide     open editor at project root (default)
+  nav     open file manager at project root
+  git     run lazygit, or pass args to git
+  agent   open AI agent at project root
+
+options:
+  -h    show this help
+EOF
+}
+
+while [ $# -gt 0 ]; do
+    case $1 in
+        -h|--help) show_help; exit 0 ;;
+        -*) printf 'active: unknown flag "%s"\n' "$1" >&2; exit 1 ;;
+        *) break ;;
+    esac
+done
+
+name=$(active_profile) || true
+[ -z "$name" ] && { printf 'active: no active profile\n' >&2; exit 1; }
+source_profile "$name"
+subcmd=${1:-ide}; [ $# -gt 0 ] && shift
+dispatch "$subcmd" "$@"
