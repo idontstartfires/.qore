@@ -75,4 +75,3 @@ hl.window_rule({
 
 require("monitors")
 require("map")
-require("style")
