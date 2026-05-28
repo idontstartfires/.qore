@@ -6,7 +6,7 @@ hl.bind("SUPER + SHIFT + Q", hl.dsp.window.close())
 
 hl.bind("SUPER + F", hl.dsp.window.fullscreen({ mode="maximized" }))
 hl.bind("SUPER + SHIFT + F", hl.dsp.window.fullscreen({ mode="fullscreen" }))
-hl.bind("SUPER + SHIFT + Y", hl.dsp.window.float())
+hl.bind("SUPER + Y", hl.dsp.window.float())
 
 hl.bind("SUPER + H", hl.dsp.focus({ direction="left" }))
 hl.bind("SUPER + J", hl.dsp.focus({ direction="down" }))
@@ -36,7 +36,7 @@ hl.bind("SUPER + space", hl.dsp.exec_cmd('$LAUNCHER -show run'))
 
 hl.bind("SUPER + backspace", hl.dsp.exec_cmd('$BROWSER'))
 
-hl.bind("SUPER + o", hl.dsp.exec_cmd('xdg-open "obsidian://open?vault=$(ls $HOME/.vaults | $LAUNCHER -dmenu)"'))
+hl.bind("SUPER + o", hl.dsp.exec_cmd('xdg-open "obsidian://open?vault=$(ls $HOME/.vaults | wofi --dmenu)"'))
 
 hl.bind("SUPER + left", hl.dsp.exec_cmd('pactl set-sink-volume @DEFAULT_SINK@ -2%'))
 hl.bind("SUPER + right", hl.dsp.exec_cmd('pactl set-sink-volume @DEFAULT_SINK@ +2%'))
@@ -55,7 +55,6 @@ hl.define_submap("project", "reset", function()
     hl.bind("e", hl.dsp.exec_cmd('$TERM_PROGRAM -e project -E'))
     hl.bind("escape", hl.dsp.exec_cmd('project -Sm $LAUNCHER'))
     hl.bind("slash", hl.dsp.exec_cmd('$TERM_PROGRAM -e project -A nav'))
-    hl.bind("a", hl.dsp.exec_cmd('$TERM_PROGRAM -e project -A agent'))
 end)
 
 
