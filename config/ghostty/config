@@ -13,3 +13,5 @@ copy-on-select = false
 confirm-close-surface = false
 
 window-inherit-working-directory = false
+
+mouse-scroll-multiplier = 1
