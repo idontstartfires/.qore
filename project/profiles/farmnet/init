@@ -23,28 +23,6 @@ _get_node_interlink_port() {
     esac
 }
 
-cmd_pins() {
-    cd $ROOT/tools/pins
-    cmd=$1; [[ -n $1 ]] && shift
-    case $cmd in
-        ide) nvim ;;
-        serve)
-            uv run uvicorn --reload --host 0.0.0.0 --port 5140 src.app:app 
-        ;;
-        prompt)
-            uv run src/prompt.py $@
-        ;;
-        flicker)
-            uv run src/flicker.py $@ \
-                structure-0/DI_10 structure-0/DI_11 structure-0/DI_5 \
-                structure-1/DI_10 structure-1/DI_7 structure-1/DI_5
-        ;;
-        style)
-            sass --load-path=static/scss --watch static/scss/:static/css/
-        ;;
-    esac 
-}
-
 cmd_node() {
     cd "$ROOT"
     if [ -f "$ROOT/.env" ]; then
@@ -75,7 +53,7 @@ cmd_node() {
                 uv run src/main.py \
                 --mode=test \
                 --config="$NODE_NAME" \
-                $@ -l PeerDiscovery=30 Uplink=30 Interlink=30 Inspect=30
+                $@ -l PeerDiscovery=30 Uplink=30 Interlink=30
                 sleep 2
             done
     esac 
