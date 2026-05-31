@@ -24,7 +24,7 @@ _get_node_interlink_port() {
 }
 
 cmd_pins() {
-    cd $ROOT/tools/pins
+    cd $ROOT/tool/pins
     cmd=$1; [[ -n $1 ]] && shift
     case $cmd in
         ide) nvim ;;
