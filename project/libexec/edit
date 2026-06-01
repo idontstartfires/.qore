@@ -70,4 +70,5 @@ if [ -n "$file_name" ] && [ ! -f "$target" ]; then
     printf '# %s\n' "$file_name" > "$target"
 fi
 
+cd "$profiles"
 ${EDITOR:-nvim} "$target"
