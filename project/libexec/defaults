@@ -2,6 +2,7 @@
 # defaults — standard profile commands, overridable in profile init scripts
 
 cmd_root() { printf '%s\n' "$ROOT"; }
+cmd_cd() { printf '__cd__:%s' "$ROOT"; }
 cmd_ide()  { cd "$ROOT" && ${IDE:-nvim}; }
 cmd_nav()  { ${FILE_MANAGER:-lf} "$ROOT"; }
 cmd_git()  {

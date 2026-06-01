@@ -53,6 +53,6 @@ case $1 in
     *)
         name=$(resolve_profile "$1") || { printf 'project: no profile matching "%s"\n' "$1" >&2; exit 1; }
         shift; source_profile "$name"
-        subcmd=${1:-ide}; [ $# -gt 0 ] && shift
+        subcmd=${1:-cd}; [ $# -gt 0 ] && shift
         dispatch "$subcmd" "$@" ;;
 esac
