@@ -1,10 +1,10 @@
 #!/bin/sh
-ROOT=$HOME/untill/portal
+ROOT=$HOME/untill/printer
 
 cmd_app() {
     cd "$ROOT"
     HOST=0.0.0.0
-    PORT=5000
+    PORT=5200
     arg=$1; [[ -n $1 ]] && shift
     case $arg in
         "")
