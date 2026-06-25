@@ -41,6 +41,9 @@ hl.bind("SUPER + o", hl.dsp.exec_cmd('xdg-open "obsidian://open?vault=$(ls $HOME
 hl.bind("SUPER + left", hl.dsp.exec_cmd('pactl set-sink-volume @DEFAULT_SINK@ -2%'))
 hl.bind("SUPER + right", hl.dsp.exec_cmd('pactl set-sink-volume @DEFAULT_SINK@ +2%'))
 
+hl.bind("SUPER + down", hl.dsp.exec_cmd('brightnessctl set 2%-'))
+hl.bind("SUPER + up", hl.dsp.exec_cmd('brightnessctl set +2%'))
+
 hl.bind("SUPER + B", hl.dsp.submap("blue"))
 hl.define_submap("blue", "reset", function()
     hl.bind("C", hl.dsp.exec_cmd('blue connect $(blue devices | wofi --dmenu | cut -d " " -f 1) && notify-send "$(blue name) 󰂱"'))
@@ -53,6 +56,7 @@ hl.bind("SUPER + tab", hl.dsp.submap("project"))
 hl.define_submap("project", "reset", function()
     hl.bind("tab", hl.dsp.exec_cmd('$TERM_PROGRAM -e project -A ide'))
     hl.bind("e", hl.dsp.exec_cmd('$TERM_PROGRAM -e project -E'))
+    hl.bind("a", hl.dsp.exec_cmd('$TERM_PROGRAM -e project -A agent'))
     hl.bind("escape", hl.dsp.exec_cmd('project -Sm $LAUNCHER'))
     hl.bind("slash", hl.dsp.exec_cmd('$TERM_PROGRAM -e project -A nav'))
 end)
