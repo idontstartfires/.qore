@@ -1,0 +1,20 @@
+#!/bin/sh
+ROOT=$HOME/untill/mlibs/static/
+
+# Standard commands (ide, root, nav) have sensible defaults.
+# Add project-specific commands as cmd_<name>() functions:
+
+cmd_scss() {
+    cd "$ROOT"
+    arg=$1; [[ -n $1 ]] && shift
+    case $arg in
+        watch)
+            target=$HOME/untill/portal/app/static/css/
+            sass --load-path=style --watch style:$target
+            ;;
+    esac
+}
+
+cmd_sass() {
+    cmd_scss $@
+}
