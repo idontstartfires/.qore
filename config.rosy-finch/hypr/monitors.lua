@@ -20,6 +20,6 @@ hl.monitor({
     position = "1920x0",
     transform = 1,
 })
-for i = 4, 8 do
+for i = 5, 8 do
     bind_workspace(i, "DP-3")
 end
