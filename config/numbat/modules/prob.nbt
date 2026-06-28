@@ -1,0 +1,5 @@
+# Probability helpers — `use prob`
+
+# Chance of at least one success in n independent trials, each with probability p.
+# e.g. gacha(0.01, 100) -> ~0.634
+fn gacha(p: Scalar, n: Scalar) -> Scalar = 1 - (1 - p)^n

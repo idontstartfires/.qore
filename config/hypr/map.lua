@@ -55,6 +55,7 @@ hl.define_submap("project", "reset", function()
     hl.bind("e", hl.dsp.exec_cmd('$TERM_PROGRAM -e project -E'))
     hl.bind("escape", hl.dsp.exec_cmd('project -Sm $LAUNCHER'))
     hl.bind("slash", hl.dsp.exec_cmd('$TERM_PROGRAM -e project -A nav'))
+    hl.bind("return", hl.dsp.exec_cmd('cd $(project -A root) && $TERM_PROGRAM'))
 end)
 
 
