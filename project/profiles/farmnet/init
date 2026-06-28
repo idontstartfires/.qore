@@ -43,7 +43,7 @@ cmd_node() {
             --include="/requirements.txt" \
             --exclude="*" \
             $ROOT/ $REMOTE:~/farmnet/
-        ;;
+            ;;
         ssh|sftp) $cmd $REMOTE ;;
         test)
             INTERLINK_PORT=$(_get_node_interlink_port $NODE_NAME)
@@ -56,5 +56,17 @@ cmd_node() {
                 $@ -l PeerDiscovery=30 Uplink=30 Interlink=30
                 sleep 2
             done
+            ;;
+        *) echo "Unknown command: node $cmd" ;;
     esac 
+}
+
+cmd_mmd() {
+    cd "$ROOT"
+    cmd=$1; shift
+    case $cmd in
+        serve)
+            uv run tool/mmd/app.py --port 9000 ;;
+        *) echo "Unknown command: mmd $cmd" ;;
+    esac
 }

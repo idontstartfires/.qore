@@ -1,0 +1,3 @@
+# Always-loaded global init.
+# Put truly always-on helpers here; namespace optional ones under modules/
+# and pull them in with `use <name>` (here or interactively).
