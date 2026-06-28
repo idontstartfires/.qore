@@ -6,6 +6,10 @@
 ROOT=$HOME
 
 # Standard commands (ide, root, nav) have sensible defaults.
+
+# Pull in shared command modules (see `project -M`):
+# use gar-publish
+
 # Add project-specific commands as cmd_<name>() functions:
 
 # cmd_serve() {

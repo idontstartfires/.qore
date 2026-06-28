@@ -1,0 +1,388 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["textual>=1.0"]
+# ///
+"""ruff-tui — interactive browser for ruff lint findings.
+
+Launched by a bare `lint` in the project tool. The summary view lists rule
+codes with their counts; select one to drill into its individual findings, then
+go back. Re-runs ruff on demand or on a timer, and can apply auto-fixes for the
+selected rule.
+
+Keys
+  j / k, ↓ / ↑   move selection
+  l / → / Enter  open the selected code's findings
+  h / ← / Esc    back to the summary
+  g / G          jump to top / bottom
+  f              apply ruff's auto-fixes for the selected code
+  r              refresh now
+  a              toggle auto-refresh (1s)
+  q              quit
+
+Run with no TTY (e.g. piped) it prints the summary table once and exits, so it
+still works in scripts.
+"""
+
+import json
+import os
+import re
+import subprocess
+import sys
+import time
+
+from rich.text import Text
+from textual import work
+from textual.app import App, ComposeResult
+from textual.binding import Binding
+from textual.containers import Container
+from textual.widgets import DataTable, Footer, Header, Static
+
+RUFF_CMD = ["uvx", "ruff", "check", "--output-format=json"]
+AUTO_INTERVAL = 1.0  # seconds
+
+
+# ── data ───────────────────────────────────────────────────────────────────
+
+def run_ruff(paths):
+    """Run ruff, returning (findings, error). findings is [] when clean."""
+    cmd = RUFF_CMD + (paths or ["."])
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True)
+    except FileNotFoundError as exc:
+        return None, f"could not run {cmd[0]!r}: {exc}"
+    out = proc.stdout.strip()
+    if not out:
+        # ruff writes nothing to stdout when there's nothing to report;
+        # a non-{0,1} exit with stderr means ruff itself failed.
+        if proc.returncode not in (0, 1) and proc.stderr.strip():
+            return None, proc.stderr.strip()
+        return [], None
+    try:
+        return json.loads(out), None
+    except json.JSONDecodeError:
+        return None, (proc.stderr.strip() or out)[:2000]
+
+
+def apply_fixes(paths, code):
+    """Run ruff --fix limited to one code. Returns a short status line."""
+    cmd = ["uvx", "ruff", "check", "--fix", "--select", code] + (paths or ["."])
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True)
+    except FileNotFoundError as exc:
+        return f"could not run ruff: {exc}", "error"
+    for line in (proc.stderr or "").splitlines():
+        if "fixed" in line.lower():
+            return line.strip(), "information"
+    return f"ran fixes for {code}", "information"
+
+
+def summarize(findings):
+    """Group findings by code → list of (code, {count, fixable, desc}), busiest first."""
+    codes = {}
+    for f in findings:
+        code = f.get("code") or "unknown"
+        fixable = f.get("fix") is not None
+        if code not in codes:
+            # drop instance-specific parenthesised detail for a cleaner label
+            desc = re.sub(r"\s*\(.*?\)\s*$", "", f.get("message", ""))
+            codes[code] = {"count": 0, "fixable": False, "desc": desc}
+        codes[code]["count"] += 1
+        codes[code]["fixable"] = codes[code]["fixable"] or fixable
+    return sorted(codes.items(), key=lambda kv: (-kv[1]["count"], kv[0]))
+
+
+def findings_for(findings, code):
+    rows = []
+    for f in findings:
+        if (f.get("code") or "unknown") != code:
+            continue
+        loc = f.get("location") or {}
+        rows.append({
+            "file": f.get("filename", "?"),
+            "row": loc.get("row", 0),
+            "col": loc.get("column", 0),
+            "msg": f.get("message", ""),
+        })
+    rows.sort(key=lambda r: (r["file"], r["row"], r["col"]))
+    return rows
+
+
+def relpath(path):
+    try:
+        return os.path.relpath(path)
+    except ValueError:
+        return path
+
+
+def clamp(v, lo, hi):
+    return max(lo, min(v, hi))
+
+
+# ── non-interactive fallback ─────────────────────────────────────────────────
+
+def print_summary(findings):
+    rows = summarize(findings)
+    print(f"{'CODE':<12} {'COUNT':>6}  {'FIX':<5}  DESCRIPTION")
+    print("-" * 60)
+    for code, info in rows:
+        flag = "yes" if info["fixable"] else "no"
+        print(f"{code:<12} {info['count']:>6}  {flag:<5}  {info['desc']}")
+    total = sum(info["count"] for _, info in rows)
+    print(f"\n{total} total errors across {len(rows)} codes")
+
+
+# ── TUI ──────────────────────────────────────────────────────────────────────
+
+class RuffTui(App):
+    CSS = """
+    Screen { background: transparent; }
+    Header { background: transparent; }
+    Footer { background: transparent; }
+    #body { height: 1fr; background: transparent; }
+    DataTable {
+        height: 1fr;
+        background: transparent;
+    }
+    DataTable > .datatable--header {
+        background: transparent;
+        text-style: bold;
+        color: $text-muted;
+    }
+    DataTable > .datatable--odd-row { background: transparent; }
+    DataTable > .datatable--even-row { background: transparent; }
+    DataTable > .datatable--cursor { background: $accent; color: $text; }
+    #message {
+        width: 1fr;
+        height: 1fr;
+        content-align: center middle;
+        color: $text-muted;
+        text-style: bold;
+    }
+    """
+
+    BINDINGS = [
+        Binding("j", "cursor_down", "Down", show=False),
+        Binding("k", "cursor_up", "Up", show=False),
+        Binding("g", "cursor_top", "Top", show=False),
+        Binding("G", "cursor_bottom", "Bottom", show=False),
+        Binding("l", "open", "Open"),
+        Binding("right", "open", "Open", show=False),
+        Binding("h", "back", "Back"),
+        Binding("left", "back", "Back", show=False),
+        Binding("escape", "back", "Back", show=False),
+        Binding("f", "fix", "Fix"),
+        Binding("r", "refresh", "Refresh"),
+        Binding("a", "toggle_auto", "Auto"),
+        Binding("q", "quit", "Quit"),
+    ]
+
+    def __init__(self, paths):
+        super().__init__()
+        self.paths = paths
+        self.findings = []
+        self.summary = []
+        self.fixable = {}
+        self.detail = []
+        self.error = None
+        self.mode = "summary"   # "summary" | "detail"
+        self.code = None        # code being viewed in detail
+        self.auto = False
+        self.last = 0.0
+
+    def compose(self) -> ComposeResult:
+        yield Header()
+        with Container(id="body"):
+            yield DataTable(id="table")
+            yield Static(id="message")
+        yield Footer()
+
+    def on_mount(self):
+        self.title = "ruff"
+        self.table = self.query_one("#table", DataTable)
+        self.table.cursor_type = "row"
+        self.message = self.query_one("#message", Static)
+        self.message.display = False
+        self.set_interval(AUTO_INTERVAL, self._auto_tick)
+        self.set_interval(1.0, self.update_status)   # keep the "Ns ago" fresh
+        self.refresh_data()
+        self.table.focus()
+
+    # data refresh -----------------------------------------------------------
+    @work(thread=True, exclusive=True, group="refresh")
+    def refresh_data(self):
+        findings, error = run_ruff(self.paths)
+        self.call_from_thread(self._apply_results, findings, error)
+
+    def _apply_results(self, findings, error):
+        self.last = time.monotonic()
+        if error is not None:
+            self.error = error
+        else:
+            self.error = None
+            self.findings = findings
+            self.summary = summarize(findings)
+            self.fixable = {code: info["fixable"] for code, info in self.summary}
+            if self.mode == "detail" and self.code is not None:
+                self.detail = findings_for(findings, self.code)
+        self.render_state()
+
+    def _auto_tick(self):
+        if self.auto:
+            self.refresh_data()
+
+    # rendering --------------------------------------------------------------
+    def render_state(self, cursor_row=None):
+        if self.error:
+            self.message.update(Text(self.error, style="red"))
+            self.message.display = True
+            self.table.display = False
+        elif self.mode == "summary" and not self.summary:
+            self.message.update("✓  no findings")
+            self.message.display = True
+            self.table.display = False
+        elif self.mode == "detail" and not self.detail:
+            self.message.update("(none)")
+            self.message.display = True
+            self.table.display = False
+        else:
+            self.message.display = False
+            self.table.display = True
+            self._rebuild_table(cursor_row)
+        self.update_status()
+
+    def _rebuild_table(self, cursor_row):
+        t = self.table
+        prev = t.cursor_row or 0
+        t.clear(columns=True)
+        if self.mode == "summary":
+            t.add_column("CODE", width=12)
+            t.add_column("COUNT", width=7)
+            t.add_column("FIX", width=5)
+            t.add_column("DESCRIPTION")
+            for code, info in self.summary:
+                fix = Text("✓", style="green") if info["fixable"] else Text("·", style="dim")
+                count = Text(str(info["count"]), justify="right")
+                t.add_row(Text(code, style="bold"), count, fix, info["desc"])
+        else:
+            t.add_column("LOCATION")
+            t.add_column("MESSAGE")
+            for r in self.detail:
+                loc = f"{relpath(r['file'])}:{r['row']}:{r['col']}"
+                t.add_row(Text(loc, style="bold cyan"), Text(r["msg"], style="dim"))
+        if t.row_count:
+            target = prev if cursor_row is None else cursor_row
+            t.move_cursor(row=clamp(target, 0, t.row_count - 1))
+
+    def update_status(self):
+        if self.error:
+            self.sub_title = "ruff error — press r to retry"
+            return
+        auto = f"auto {AUTO_INTERVAL:.0f}s" if self.auto else "manual"
+        age = int(time.monotonic() - self.last) if self.last else 0
+        if self.mode == "detail" and self.code:
+            self.sub_title = f"{self.code} · {len(self.detail)} findings · {auto} · {age}s ago"
+        else:
+            total = sum(info["count"] for _, info in self.summary)
+            self.sub_title = f"{total} findings · {len(self.summary)} codes · {auto} · {age}s ago"
+
+    # input ------------------------------------------------------------------
+    def check_action(self, action, parameters):
+        if action == "open" and self.mode != "summary":
+            return None
+        if action == "back" and self.mode != "detail":
+            return None
+        return True
+
+    def current_code(self):
+        if self.mode == "detail":
+            return self.code
+        if self.summary:
+            idx = self.table.cursor_row
+            if idx is not None and 0 <= idx < len(self.summary):
+                return self.summary[idx][0]
+        return None
+
+    def action_cursor_down(self):
+        self.table.action_cursor_down()
+
+    def action_cursor_up(self):
+        self.table.action_cursor_up()
+
+    def action_cursor_top(self):
+        if self.table.row_count:
+            self.table.move_cursor(row=0)
+
+    def action_cursor_bottom(self):
+        if self.table.row_count:
+            self.table.move_cursor(row=self.table.row_count - 1)
+
+    def action_open(self):
+        if self.mode != "summary" or not self.summary:
+            return
+        idx = self.table.cursor_row
+        if idx is None or not (0 <= idx < len(self.summary)):
+            return
+        self.code = self.summary[idx][0]
+        self.detail = findings_for(self.findings, self.code)
+        self.mode = "detail"
+        self.refresh_bindings()
+        self.render_state(cursor_row=0)
+
+    def on_data_table_row_selected(self, event):
+        self.action_open()
+
+    def action_back(self):
+        if self.mode != "detail":
+            return
+        code = self.code
+        self.mode = "summary"
+        self.code = None
+        self.refresh_bindings()
+        idx = next((i for i, (c, _) in enumerate(self.summary) if c == code), 0)
+        self.render_state(cursor_row=idx)
+
+    def action_refresh(self):
+        self.refresh_data()
+
+    def action_toggle_auto(self):
+        self.auto = not self.auto
+        self.notify(f"auto-refresh {'on' if self.auto else 'off'}")
+        self.update_status()
+
+    def action_fix(self):
+        code = self.current_code()
+        if not code:
+            self.notify("nothing selected", severity="warning")
+            return
+        if not self.fixable.get(code):
+            self.notify(f"no auto-fix available for {code}", severity="warning")
+            return
+        self.notify(f"applying fixes for {code}…")
+        self._apply_fix(code)
+
+    @work(thread=True, group="fix")
+    def _apply_fix(self, code):
+        msg, severity = apply_fixes(self.paths, code)
+        self.call_from_thread(self._after_fix, msg, severity)
+
+    def _after_fix(self, msg, severity):
+        self.notify(msg, severity=severity)
+        self.refresh_data()
+
+
+def main():
+    paths = sys.argv[1:]
+    if not sys.stdout.isatty():
+        findings, error = run_ruff(paths)
+        if error is not None:
+            print(error, file=sys.stderr)
+            return 1
+        print_summary(findings)
+        return 0
+    RuffTui(paths).run()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,58 @@
+#!/bin/sh
+# python-tooling — standard commands for uv-managed Python projects
+#
+# A project module, pulled into a profile init with:
+#   use python-tooling
+# Expects the importing profile to set ROOT to the project directory.
+#
+# Provides three commands. Each recognises a few special subcommands and
+# otherwise forwards the subcommand straight to the underlying tool, so the
+# tool's own verbs work without enumerating them here:
+#
+#   lint   ruff      lint (TUI) / lint check / lint fix / lint diff / lint ...
+#   type   pyrefly   type check / type ...                     (tool-agnostic name)
+#   pkg    uv        pkg add / pkg sync / pkg run pytest ...
+#
+# Bare `lint` launches the ruff-tui findings browser (local/bin/ruff-tui).
+#
+# `type` and `pkg` are deliberately generic: swapping pyrefly for pyright, or uv
+# for another manager, changes a command's internals but not its name.
+
+cmd_lint() {
+    cd "$ROOT"
+    arg=$1; [[ -n $1 ]] && shift
+    case $arg in
+        "")
+            ruff-tui
+            ;;
+        fix)
+            uvx ruff check --fix $@
+            ;;
+        diff)
+            uvx ruff check --diff $@
+            ;;
+        *)
+            uvx ruff $arg $@
+            ;;
+    esac
+}
+
+cmd_type() {
+    cd "$ROOT"
+    arg=$1; [[ -n $1 ]] && shift
+    case $arg in
+        *)
+            uvx pyrefly $arg $@
+            ;;
+    esac
+}
+
+cmd_pkg() {
+    cd "$ROOT"
+    arg=$1; [[ -n $1 ]] && shift
+    case $arg in
+        *)
+            uv $arg $@
+            ;;
+    esac
+}

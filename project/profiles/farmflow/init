@@ -1,66 +1,6 @@
 #!/bin/sh
 ROOT=$HOME/untill/farmflow
 
-cmd_app() {
-    cd "$ROOT"
-    host=0.0.0.0
-    port=5100
-    arg=$1; [[ -n $1 ]] && shift
-    case $arg in
-        "")
-            echo "app command not provided"
-        ;;
-        serve)
-            uv run uvicorn --host $host --port $port --timeout-graceful-shutdown 3 --reload --factory app:serve
-        ;;
-        *)   
-            echo "'app ${arg:-<null>}' command not configured"
-        ;;
-    esac 
-}
-
-
-cmd_lint() {
-    cd "$ROOT"
-    arg=$1; [[ -n $1 ]] && shift
-    case $arg in
-        "")
-            echo "lint command not provided"
-            ;;
-        check)
-            uvx ruff check $@
-            ;;
-        diff)
-            uvx ruff check --diff $@
-            ;;
-        fix)
-            uvx ruff check --fix $@
-            ;;
-        report)
-            uvx ruff check --output-format=json $@ 2>/dev/null \
-                | python3 -c "
-import json, re, sys
-findings = json.load(sys.stdin)
-codes = {}
-for f in findings:
-    c = f.get('code') or 'unknown'
-    fixable = f.get('fix') is not None
-    if c not in codes:
-        # strip instance-specific detail (parenthesised suffixes) for a cleaner description
-        msg = re.sub(r'\s*\(.*?\)\s*$', '', f.get('message', ''))
-        codes[c] = {'count': 0, 'fixable': fixable, 'desc': msg}
-    codes[c]['count'] += 1
-    codes[c]['fixable'] = codes[c]['fixable'] or fixable
-print(f'{'CODE':<12} {'COUNT':>6}  {'FIX':<5}  DESCRIPTION')
-print('-' * 60)
-for code, info in sorted(codes.items(), key=lambda x: -x[1]['count']):
-    flag = 'yes' if info['fixable'] else 'no'
-    print(f'{code:<12} {info[\"count\"]:>6}  {flag:<5}  {info[\"desc\"]}')
-print(f'\n{len(findings)} total errors across {len(codes)} codes')
-"
-            ;;
-        *)
-            echo "'lint ${arg:-<null>}' command not configured"
-            ;;
-    esac
-}
+APP_SERVER_PORT=5100
+use app-server
+use python-tooling

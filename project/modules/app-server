@@ -1,0 +1,32 @@
+#!/bin/sh
+# app-server — `app` command for uvicorn-served FastAPI apps
+#
+# A project module, pulled into a profile init with:
+#   use app-server
+#
+# The importing profile provides:
+#   APP_SERVER_PORT   required — port to serve on
+#   APP_SERVER_HOST   optional — listen address, defaults to 0.0.0.0
+# and sets ROOT to the app directory (exposing an `app:serve` factory).
+
+cmd_app() {
+    cd "$ROOT"
+
+    host=${APP_SERVER_HOST:-0.0.0.0}
+    port=$APP_SERVER_PORT
+
+    arg=$1; [[ -n $1 ]] && shift
+    case $arg in
+        "")
+            echo "app command not provided"
+        ;;
+        serve)
+            [[ -n $port ]] || { echo "app: APP_SERVER_PORT not set"; return 1; }
+            uv run uvicorn --host "$host" --port "$port" \
+                --timeout-graceful-shutdown 3 --reload --factory app:serve
+        ;;
+        *)
+            echo "'app ${arg:-<null>}' command not configured"
+        ;;
+    esac
+}

@@ -2,11 +2,6 @@
 
 ROOT=$HOME/untill/ctrlio
 
- cmd_app() {
-     case "$1" in
-         serve)
-             cd "$ROOT"
-             uv run uvicorn --reload --host 0.0.0.0 --port 5140 --factory app:serve
-             ;;
-     esac
- }
+APP_SERVER_PORT=5140
+use app-server
+use python-tooling

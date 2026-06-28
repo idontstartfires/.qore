@@ -1,12 +1,5 @@
 #!/bin/sh
 ROOT=$HOME/untill/mlibs/server
 
-cmd_publish() {
-    cd "$ROOT"
-
-    read -e -p "$(uv version) -> " version
-    [[ -n $version ]] && uv version $version || version=$(uv version | cut -d' ' -f2)
-    rm -rf dist/
-    uv build --no-sources
-    uv publish --index google
-}
+use gar-publish
+use python-tooling

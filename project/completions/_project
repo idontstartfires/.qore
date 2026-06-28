@@ -24,6 +24,12 @@ _project() {
         _describe 'command' cmds
     }
 
+    _project_modules() {
+        local -a all_modules
+        all_modules=("${(@f)$(ls -1 "$QORE/project/modules" 2>/dev/null)}")
+        _describe 'module' all_modules
+    }
+
     # Completion for -C <name>: warn if name exists, suggest trashed profiles
     _create_name() {
         local profiles="$QORE/project/profiles"
@@ -71,6 +77,7 @@ _project() {
         '(-h --help)--help[show help]' \
         '(-h --help)-h[show help, or list commands for a profile]::profile:->profiles' \
         '-E+[edit profile init or a named file]: :->profiles' \
+        '-M+[list modules or edit/create one]::module:->modules' \
         '-C+[create or restore profile]: :->create_name' \
         '-R+[remove profile]::profile:->profiles' \
         '-Q+[query profiles]::search term: ' \
@@ -85,6 +92,8 @@ _project() {
             _project_profiles ;;
         create_name)
             _create_name ;;
+        modules)
+            _project_modules ;;
         cmds)
             _project_cmds ;;
     esac

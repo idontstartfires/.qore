@@ -18,6 +18,7 @@ usage: project [flags] [args]
 
   -C[fra]      create or restore profile       (-Ch for options)
   -E [name]    edit profile init (or a named file within it)
+  -M [name]    list modules, or edit/create one (-Mh for options)
   -R           trash profile                   (-Rh for options)
   -h [profile] show this help, or list commands for a profile
 EOF
@@ -25,8 +26,14 @@ EOF
     *)
         name=$(resolve_profile "$cmd") \
             || { printf 'help: no profile matching "%s"\n' "$cmd" >&2; exit 1; }
+        init="$profiles/$name/init"
+        # Collect modules the profile imports via `use`, so their commands show too.
+        module_files=""
+        for m in $(sed -n 's/^[[:space:]]*use[[:space:]]\{1,\}//p' "$init" 2>/dev/null); do
+            [ -f "$modules/$m" ] && module_files="$module_files $modules/$m"
+        done
         printf '%s — commands\n' "$name"
-        grep -h '^cmd_[a-zA-Z_]* *()' "$lib/defaults" "$profiles/$name/init" 2>/dev/null \
+        grep -h '^cmd_[a-zA-Z_]* *()' "$lib/defaults" $module_files "$init" 2>/dev/null \
             | sed 's/ *(.*$//' \
             | sed 's/^cmd_//' \
             | awk '!seen[$0]++'

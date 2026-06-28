@@ -47,6 +47,11 @@ case $1 in
         [ -n "$subflags" ] && set -- "-$subflags" "$@"
         "$lib/active" "$@" ;;
 
+    -M*)
+        subflags="${1#-M}"; shift
+        [ -n "$subflags" ] && set -- "-$subflags" "$@"
+        "$lib/module" "$@" ;;
+
     -*)
         printf 'project: unknown flag "%s"\n' "$1" >&2; exit 1 ;;
 

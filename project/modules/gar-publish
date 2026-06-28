@@ -1,0 +1,16 @@
+#!/bin/sh
+# gar-publish — publish a uv-managed Python package to Google Artifact Registry
+#
+# A project module: not tied to a profile, pulled in from a profile init with
+#   use gar-publish
+# Expects the importing profile to have set ROOT to the package directory.
+
+cmd_publish() {
+    cd "$ROOT"
+
+    read -e -p "$(uv version) -> " version
+    [[ -n $version ]] && uv version $version || version=$(uv version | cut -d' ' -f2)
+    rm -rf dist/
+    uv build --no-sources
+    uv publish --index google
+}
