@@ -1,6 +1,8 @@
 #!/bin/sh
 ROOT=$HOME/untill/farmnet
 
+use python-tooling
+
 _get_ssh_host() {
     case $1 in 
         seeder-0)    echo seeder.farmnet ;;

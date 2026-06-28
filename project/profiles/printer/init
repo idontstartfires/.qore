@@ -1,21 +1,7 @@
 #!/bin/sh
 ROOT=$HOME/untill/printer
 
-cmd_app() {
-    cd "$ROOT"
-    HOST=0.0.0.0
-    PORT=5200
-    arg=$1; [[ -n $1 ]] && shift
-    case $arg in
-        "")
-            echo "app command not provided"
-        ;;
-        serve)
-            export FILE_MANAGER=gcp
-            uv run uvicorn --host $HOST --port $PORT --reload --factory app:serve
-        ;;
-        *)   
-            echo "'app ${arg:-<null>}' command not configured"
-        ;;
-    esac 
-}
+APP_SERVER_PORT=5200
+
+use app-server
+use python-tooling

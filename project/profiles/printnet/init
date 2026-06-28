@@ -1,6 +1,8 @@
 #!/bin/sh
 ROOT=$HOME/untill/printnet
 
+use python-tooling
+
 _get_ssh_host() {
     case $1 in 
         cold-storage) echo cold-storage.printnet ;;

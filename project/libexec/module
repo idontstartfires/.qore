@@ -1,0 +1,79 @@
+#!/bin/sh
+# module — list, edit, and create shareable project modules
+#
+# Modules are standalone sh files in $modules that define cmd_* functions a
+# profile can pull in from its init with `use <module>`.
+
+lib=$QORE/project/libexec
+. "$lib/common"
+
+show_help() {
+    cat <<'EOF'
+usage: project -M [name]
+
+list, edit, or create shareable modules
+
+  -M               list all modules
+  -M <name>        edit (or create) a module in $EDITOR
+
+modules are imported from a profile init with:  use <name>
+
+options:
+  -h    show this help
+
+examples:
+  project -M               list modules
+  project -M gar-publish   edit (or create) the gar-publish module
+EOF
+}
+
+# ── argument parsing ──────────────────────────────────────────────────────────
+
+module_name=""
+
+while [ $# -gt 0 ]; do
+    case $1 in
+        -h|--help) show_help; exit 0 ;;
+        -*)
+            remaining="${1#-}"; shift
+            while [ -n "$remaining" ]; do
+                flag="${remaining%"${remaining#?}"}"
+                remaining="${remaining#?}"
+                case $flag in
+                    h) show_help; exit 0 ;;
+                    *) printf 'module: unknown flag "-%s"\n' "$flag" >&2; exit 1 ;;
+                esac
+            done ;;
+        *)
+            [ -z "$module_name" ] || { printf 'module: unexpected argument "%s"\n' "$1" >&2; exit 1; }
+            module_name=$1; shift ;;
+    esac
+done
+
+# ── list ──────────────────────────────────────────────────────────────────────
+
+if [ -z "$module_name" ]; then
+    ls -A "$modules" 2>/dev/null | while IFS= read -r name; do
+        [ -f "$modules/$name" ] || continue
+        printf '%s\n' "$name"
+    done
+    exit 0
+fi
+
+# ── edit / create ─────────────────────────────────────────────────────────────
+
+target="$modules/$module_name"
+
+# Stub a new module so the editor opens an existing file.
+if [ ! -f "$target" ]; then
+    mkdir -p "$modules"
+    cat > "$target" <<EOF
+#!/bin/sh
+# $module_name — project module, imported from a profile init with: use $module_name
+
+# Define cmd_<name>() functions here. ROOT is set by the importing profile.
+EOF
+fi
+
+cd "$modules"
+${EDITOR:-nvim} "$target"

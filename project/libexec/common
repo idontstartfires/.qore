@@ -3,6 +3,7 @@
 
 P=$QORE/project
 profiles=$P/profiles
+modules=$P/modules
 active=$P/.active
 lib=$P/libexec
 
@@ -52,6 +53,18 @@ resolve_profile() {
     [ -d "$profiles/$query" ] && { printf '%s' "$query"; return 0; }
     matched=$(fuzzy_profile "$query") || return 1
     printf '%s' "$matched"
+}
+
+# Import one or more modules, making their cmd_* functions available to the
+# profile that calls `use`. Modules live in $modules and are plain sh files.
+# Intended to be called from a profile init, after ROOT is set.
+use() {
+    local m mod
+    for m in "$@"; do
+        mod="$modules/$m"
+        [ -f "$mod" ] || { printf 'project: no module "%s"\n' "$m" >&2; return 1; }
+        . "$mod"
+    done
 }
 
 # Source a profile's init file, preceded by defaults.
