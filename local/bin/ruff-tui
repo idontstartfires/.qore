@@ -7,8 +7,8 @@
 
 Launched by a bare `lint` in the project tool. The summary view lists rule
 codes with their counts; select one to drill into its individual findings, then
-go back. Re-runs ruff on demand or on a timer, and can apply auto-fixes for the
-selected rule.
+go back. The listing re-runs ruff every second, and can apply auto-fixes for
+the selected rule.
 
 Keys
   j / k, ↓ / ↑   move selection
@@ -16,8 +16,6 @@ Keys
   h / ← / Esc    back to the summary
   g / G          jump to top / bottom
   f              apply ruff's auto-fixes for the selected code
-  r              refresh now
-  a              toggle auto-refresh (1s)
   q              quit
 
 Run with no TTY (e.g. piped) it prints the summary table once and exits, so it
@@ -29,14 +27,14 @@ import os
 import re
 import subprocess
 import sys
-import time
 
 from rich.text import Text
 from textual import work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.containers import Container
-from textual.widgets import DataTable, Footer, Header, Static
+from textual.containers import Container, Horizontal, Vertical
+from textual.screen import ModalScreen
+from textual.widgets import Button, DataTable, Footer, Header, Label, Static
 
 RUFF_CMD = ["uvx", "ruff", "check", "--output-format=json"]
 AUTO_INTERVAL = 1.0  # seconds
@@ -64,9 +62,16 @@ def run_ruff(paths):
         return None, (proc.stderr.strip() or out)[:2000]
 
 
-def apply_fixes(paths, code):
-    """Run ruff --fix limited to one code. Returns a short status line."""
-    cmd = ["uvx", "ruff", "check", "--fix", "--select", code] + (paths or ["."])
+def apply_fixes(paths, code, unsafe=False):
+    """Run ruff --fix limited to one code. Returns a short status line.
+
+    Plain --fix only applies fixes ruff marks "safe"; --unsafe-fixes is needed
+    to apply the rest, which is why a code can look fixable yet `f` does nothing.
+    """
+    cmd = ["uvx", "ruff", "check", "--fix", "--select", code]
+    if unsafe:
+        cmd.append("--unsafe-fixes")
+    cmd += (paths or ["."])
     try:
         proc = subprocess.run(cmd, capture_output=True, text=True)
     except FileNotFoundError as exc:
@@ -78,17 +83,24 @@ def apply_fixes(paths, code):
 
 
 def summarize(findings):
-    """Group findings by code → list of (code, {count, fixable, desc}), busiest first."""
+    """Group findings by code → list of (code, info), busiest first.
+
+    info carries the total `count` plus how many of those findings ruff can fix
+    `safe`ly vs only with `unsafe` fixes — they drive different keybindings.
+    """
     codes = {}
     for f in findings:
         code = f.get("code") or "unknown"
-        fixable = f.get("fix") is not None
+        applicability = (f.get("fix") or {}).get("applicability")
         if code not in codes:
             # drop instance-specific parenthesised detail for a cleaner label
             desc = re.sub(r"\s*\(.*?\)\s*$", "", f.get("message", ""))
-            codes[code] = {"count": 0, "fixable": False, "desc": desc}
+            codes[code] = {"count": 0, "safe": 0, "unsafe": 0, "desc": desc}
         codes[code]["count"] += 1
-        codes[code]["fixable"] = codes[code]["fixable"] or fixable
+        if applicability == "safe":
+            codes[code]["safe"] += 1
+        elif applicability == "unsafe":
+            codes[code]["unsafe"] += 1
     return sorted(codes.items(), key=lambda kv: (-kv[1]["count"], kv[0]))
 
 
@@ -119,39 +131,128 @@ def clamp(v, lo, hi):
     return max(lo, min(v, hi))
 
 
+def fix_label(info):
+    """Short word for a code's fix availability: safe / unsafe / both / no."""
+    if info["safe"] and info["unsafe"]:
+        return "both"
+    if info["safe"]:
+        return "safe"
+    if info["unsafe"]:
+        return "unsafe"
+    return "no"
+
+
+def _fix_cell(info):
+    """FIX-column marker: green ✓ for safe fixes, yellow ⚠ for unsafe ones."""
+    cell = Text()
+    if info["safe"]:
+        cell.append("✓", style="green")
+    if info["unsafe"]:
+        cell.append("⚠", style="yellow")
+    if not cell.plain:
+        cell.append("·", style="dim")
+    return cell
+
+
 # ── non-interactive fallback ─────────────────────────────────────────────────
 
 def print_summary(findings):
     rows = summarize(findings)
-    print(f"{'CODE':<12} {'COUNT':>6}  {'FIX':<5}  DESCRIPTION")
+    print(f"{'CODE':<12} {'COUNT':>6}  {'FIX':<6}  DESCRIPTION")
     print("-" * 60)
     for code, info in rows:
-        flag = "yes" if info["fixable"] else "no"
-        print(f"{code:<12} {info['count']:>6}  {flag:<5}  {info['desc']}")
+        print(f"{code:<12} {info['count']:>6}  {fix_label(info):<6}  {info['desc']}")
     total = sum(info["count"] for _, info in rows)
     print(f"\n{total} total errors across {len(rows)} codes")
 
 
 # ── TUI ──────────────────────────────────────────────────────────────────────
 
-class RuffTui(App):
+class ConfirmFix(ModalScreen[bool]):
+    """Yes/no dialog before applying fixes; unsafe fixes get a louder warning.
+
+    Dismisses with True to proceed, False to cancel. Cancel is focused by
+    default so a stray Enter never applies an unsafe rewrite.
+    """
+
+    BINDINGS = [
+        Binding("y", "confirm", "Apply", show=False),
+        Binding("n", "cancel", "Cancel", show=False),
+        Binding("escape", "cancel", "Cancel", show=False),
+    ]
+    # No opaque backgrounds (keeps terminal transparency); the border delimits
+    # the dialog instead. $error/$primary resolve to ANSI red/blue.
     CSS = """
-    Screen { background: transparent; }
-    Header { background: transparent; }
-    Footer { background: transparent; }
-    #body { height: 1fr; background: transparent; }
-    DataTable {
-        height: 1fr;
-        background: transparent;
+    ConfirmFix { align: center middle; }
+    #dialog {
+        width: 64;
+        max-width: 90%;
+        height: auto;
+        padding: 1 2;
+        border: round $primary;
     }
-    DataTable > .datatable--header {
-        background: transparent;
+    #dialog.unsafe { border: round $error; }
+    #title { text-style: bold; width: 1fr; }
+    #dialog.unsafe #title { color: $error; }
+    #warn { width: 1fr; margin-top: 1; }
+    #buttons { height: auto; margin-top: 1; align-horizontal: right; }
+    #buttons Button { margin-left: 2; }
+    """
+
+    def __init__(self, code, unsafe, count):
+        super().__init__()
+        self.code = code
+        self.unsafe = unsafe
+        self.count = count
+
+    def compose(self) -> ComposeResult:
+        kind = "unsafe" if self.unsafe else "safe"
+        n = self.count
+        things = "finding" if n == 1 else "findings"
+        with Vertical(id="dialog", classes="unsafe" if self.unsafe else ""):
+            yield Label(f"Apply {kind} fixes for {self.code}?", id="title")
+            if self.unsafe:
+                body = (
+                    f"⚠  ruff will rewrite {n} {things} using fixes it marks UNSAFE.\n"
+                    "Unsafe fixes can change what your code does. Review the diff "
+                    "afterwards."
+                )
+            else:
+                body = f"ruff will fix {n} {things}, editing files in place."
+            yield Label(body, id="warn")
+            with Horizontal(id="buttons"):
+                yield Button("Cancel", variant="default", id="cancel")
+                yield Button(
+                    "Apply unsafe" if self.unsafe else "Apply",
+                    variant="error" if self.unsafe else "primary",
+                    id="apply",
+                )
+
+    def on_button_pressed(self, event: Button.Pressed):
+        self.dismiss(event.button.id == "apply")
+
+    def action_confirm(self):
+        self.dismiss(True)
+
+    def action_cancel(self):
+        self.dismiss(False)
+
+
+class RuffTui(App):
+    # The "ansi-dark" theme (set in on_mount) paints every surface with the
+    # terminal's *default* background (ANSI SGR 49, no explicit colour), which
+    # is what lets a transparent terminal show through. So this stylesheet must
+    # NOT set any opaque background — not even `transparent`, which forces an
+    # RGB blend and re-opaques the cell. Foreground colours are fine; only
+    # backgrounds break compositor transparency.
+    CSS = """
+    DataTable:ansi > .datatable--header {
         text-style: bold;
         color: $text-muted;
+        background: ansi_default;
     }
-    DataTable > .datatable--odd-row { background: transparent; }
-    DataTable > .datatable--even-row { background: transparent; }
-    DataTable > .datatable--cursor { background: $accent; color: $text; }
+    #body { height: 1fr; }
+    DataTable { height: 1fr; }
     #message {
         width: 1fr;
         height: 1fr;
@@ -171,9 +272,8 @@ class RuffTui(App):
         Binding("h", "back", "Back"),
         Binding("left", "back", "Back", show=False),
         Binding("escape", "back", "Back", show=False),
-        Binding("f", "fix", "Fix"),
-        Binding("r", "refresh", "Refresh"),
-        Binding("a", "toggle_auto", "Auto"),
+        Binding("f", "fix", "Fix safe"),
+        Binding("F", "fix_unsafe", "Fix unsafe"),
         Binding("q", "quit", "Quit"),
     ]
 
@@ -182,13 +282,11 @@ class RuffTui(App):
         self.paths = paths
         self.findings = []
         self.summary = []
-        self.fixable = {}
+        self.fix_info = {}      # code → summary info (counts, safe, unsafe)
         self.detail = []
         self.error = None
         self.mode = "summary"   # "summary" | "detail"
         self.code = None        # code being viewed in detail
-        self.auto = False
-        self.last = 0.0
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -198,13 +296,16 @@ class RuffTui(App):
         yield Footer()
 
     def on_mount(self):
+        # ANSI theme → surfaces use the terminal's default background, so
+        # ghostty/compositor transparency shows through instead of being
+        # painted over with an opaque RGB colour.
+        self.theme = "ansi-dark"
         self.title = "ruff"
         self.table = self.query_one("#table", DataTable)
         self.table.cursor_type = "row"
         self.message = self.query_one("#message", Static)
         self.message.display = False
-        self.set_interval(AUTO_INTERVAL, self._auto_tick)
-        self.set_interval(1.0, self.update_status)   # keep the "Ns ago" fresh
+        self.set_interval(AUTO_INTERVAL, self.refresh_data)
         self.refresh_data()
         self.table.focus()
 
@@ -215,21 +316,16 @@ class RuffTui(App):
         self.call_from_thread(self._apply_results, findings, error)
 
     def _apply_results(self, findings, error):
-        self.last = time.monotonic()
         if error is not None:
             self.error = error
         else:
             self.error = None
             self.findings = findings
             self.summary = summarize(findings)
-            self.fixable = {code: info["fixable"] for code, info in self.summary}
+            self.fix_info = {code: info for code, info in self.summary}
             if self.mode == "detail" and self.code is not None:
                 self.detail = findings_for(findings, self.code)
         self.render_state()
-
-    def _auto_tick(self):
-        if self.auto:
-            self.refresh_data()
 
     # rendering --------------------------------------------------------------
     def render_state(self, cursor_row=None):
@@ -258,12 +354,11 @@ class RuffTui(App):
         if self.mode == "summary":
             t.add_column("CODE", width=12)
             t.add_column("COUNT", width=7)
-            t.add_column("FIX", width=5)
+            t.add_column("FIX", width=4)
             t.add_column("DESCRIPTION")
             for code, info in self.summary:
-                fix = Text("✓", style="green") if info["fixable"] else Text("·", style="dim")
                 count = Text(str(info["count"]), justify="right")
-                t.add_row(Text(code, style="bold"), count, fix, info["desc"])
+                t.add_row(Text(code, style="bold"), count, _fix_cell(info), info["desc"])
         else:
             t.add_column("LOCATION")
             t.add_column("MESSAGE")
@@ -276,15 +371,13 @@ class RuffTui(App):
 
     def update_status(self):
         if self.error:
-            self.sub_title = "ruff error — press r to retry"
+            self.sub_title = "ruff error"
             return
-        auto = f"auto {AUTO_INTERVAL:.0f}s" if self.auto else "manual"
-        age = int(time.monotonic() - self.last) if self.last else 0
         if self.mode == "detail" and self.code:
-            self.sub_title = f"{self.code} · {len(self.detail)} findings · {auto} · {age}s ago"
+            self.sub_title = f"{self.code} · {len(self.detail)} findings"
         else:
             total = sum(info["count"] for _, info in self.summary)
-            self.sub_title = f"{total} findings · {len(self.summary)} codes · {auto} · {age}s ago"
+            self.sub_title = f"{total} findings · {len(self.summary)} codes"
 
     # input ------------------------------------------------------------------
     def check_action(self, action, parameters):
@@ -342,28 +435,43 @@ class RuffTui(App):
         idx = next((i for i, (c, _) in enumerate(self.summary) if c == code), 0)
         self.render_state(cursor_row=idx)
 
-    def action_refresh(self):
-        self.refresh_data()
-
-    def action_toggle_auto(self):
-        self.auto = not self.auto
-        self.notify(f"auto-refresh {'on' if self.auto else 'off'}")
-        self.update_status()
-
     def action_fix(self):
+        self._request_fix(unsafe=False)
+
+    def action_fix_unsafe(self):
+        self._request_fix(unsafe=True)
+
+    def _request_fix(self, unsafe):
         code = self.current_code()
         if not code:
             self.notify("nothing selected", severity="warning")
             return
-        if not self.fixable.get(code):
-            self.notify(f"no auto-fix available for {code}", severity="warning")
+        info = self.fix_info.get(code)
+        if info is None:
             return
-        self.notify(f"applying fixes for {code}…")
-        self._apply_fix(code)
+        if unsafe:
+            if not info["unsafe"]:
+                self.notify(f"{code} has no unsafe fixes", severity="warning")
+                return
+            # --unsafe-fixes applies safe and unsafe fixes together
+            count = info["safe"] + info["unsafe"]
+        else:
+            if not info["safe"]:
+                hint = " — its fixes are unsafe, use shift+F" if info["unsafe"] else ""
+                self.notify(f"no safe fix available for {code}{hint}", severity="warning")
+                return
+            count = info["safe"]
+
+        def proceed(ok):
+            if ok:
+                self.notify(f"applying {'unsafe ' if unsafe else ''}fixes for {code}…")
+                self._apply_fix(code, unsafe)
+
+        self.push_screen(ConfirmFix(code, unsafe, count), proceed)
 
     @work(thread=True, group="fix")
-    def _apply_fix(self, code):
-        msg, severity = apply_fixes(self.paths, code)
+    def _apply_fix(self, code, unsafe):
+        msg, severity = apply_fixes(self.paths, code, unsafe)
         self.call_from_thread(self._after_fix, msg, severity)
 
     def _after_fix(self, msg, severity):
