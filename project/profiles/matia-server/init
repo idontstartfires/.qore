@@ -1,5 +1,5 @@
 #!/bin/sh
-ROOT=$HOME/untill/mlibs/server
+ROOT=$HOME/untill/matia/libs/server
 
 use gar-publish
 use python-tooling
