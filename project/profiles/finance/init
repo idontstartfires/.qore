@@ -11,3 +11,13 @@ cmd_run() {
     cd $ROOT
     cargo run $*
 }
+
+cmd_view() {
+    cd $ROOT
+    cargo run --bin finance -- $*
+}
+
+cmd_sync() {
+    cd $ROOT
+    cargo run --bin sync -- $*
+}
