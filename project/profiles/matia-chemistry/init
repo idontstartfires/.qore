@@ -1,5 +1,5 @@
 #!/bin/sh
-ROOT=$HOME/untill/matia/libs/chem
+ROOT=$HOME/untill/matia/libs/chemistry
 
 use gar-publish
 use python-tooling
