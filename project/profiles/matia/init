@@ -1,0 +1,38 @@
+#!/bin/sh
+ROOT=$HOME/untill/matia
+
+cmd_overseer() {
+    _ov_root="$ROOT/tools/overseer"
+    _ov_bin="$_ov_root/target/release/overseer"
+
+    _ov_build() { (cd "$_ov_root" && cargo build --release); }
+
+    # Rebuild if the binary is missing or any source is newer than it.
+    _ov_ensure() {
+        if [ ! -x "$_ov_bin" ]; then
+            _ov_build || return 1
+        elif [ -n "$(find "$_ov_root/src" "$_ov_root/Cargo.toml" -type f -newer "$_ov_bin" 2>/dev/null | head -1)" ]; then
+            _ov_build || return 1
+        fi
+    }
+
+    arg=$1; [ -n "$1" ] && shift
+    case $arg in
+        build)
+            _ov_build
+            ;;
+        config|edit)
+            _ov_ensure || return 1
+            "$_ov_bin" services >/dev/null 2>&1   # seed on first use
+            ${EDITOR:-nvim} "$("$_ov_bin" config-path)"
+            ;;
+        *)
+            _ov_ensure || return 1
+            if [ -n "$arg" ]; then
+                "$_ov_bin" "$arg" "$@"
+            else
+                "$_ov_bin"
+            fi
+            ;;
+    esac
+}
