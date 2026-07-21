@@ -8,6 +8,9 @@
 /project/.active
 /project/profiles/**/.meta
 
+=======
+**/.env
+**/.env.*
 **/*.env
 
 **/__pycache__

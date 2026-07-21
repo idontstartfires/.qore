@@ -1,0 +1,13 @@
+#!/bin/sh
+ROOT=$HOME/projects/adam
+AI_AGENT=codex
+
+cmd_build() {
+    cd "$ROOT"
+    cargo build
+}
+
+cmd_run() {
+    cd "$ROOT"
+    cargo run
+}
