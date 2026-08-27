@@ -2,6 +2,7 @@
 ROOT=$HOME/untill/farmnet
 
 use python-tooling
+use work-management
 
 _get_ssh_host() {
     case $1 in 

@@ -4,3 +4,4 @@ ROOT=$HOME/untill/farmflow
 APP_SERVER_PORT=5100
 use app-server
 use python-tooling
+use work-management
