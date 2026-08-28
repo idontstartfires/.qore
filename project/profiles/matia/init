@@ -36,3 +36,16 @@ cmd_overseer() {
             ;;
     esac
 }
+
+
+cmd_libs() {
+    cd "$ROOT"
+
+    arg=$1; [ -n "$1" ] && shift
+    case $arg in
+        pull) git submodule update --init
+            ;;
+        *)  echo "Unknown command: $arg"
+            ;;
+    esac
+}

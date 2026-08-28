@@ -17,9 +17,13 @@ open = [ { run = 'xdg-open "$@"', desc = "Open" } ]
 extract = [ { run = 'ouch decompress --yes "$1"', desc = "Extract here" } ]
 web-browser = [ { run = '$BROWSER "$1"', orphan = true, desc = "Web Browser" } ]
 
+image-view = [ { 
+    run = 'imv "$@" --', 
+    orphan = true, desc = "View Images" 
+} ]
 image-view-version-sorted = [ { 
     run = 'fd -t f --exec-batch file --mime-type | rg "image/" | cut -d: -f1 | sort -V | imv -n "$1" --', 
-    orphan = true, desc = "View Images" 
+    orphan = true, desc = "View Images Version Sorted" 
 } ]
 image-view-random-sorted = [ {
     run = 'fd -t f --exec-batch file --mime-type | rg "image/" | cut -d: -f1 | shuf | imv -n "$1" --',
@@ -47,7 +51,7 @@ rules = [
     { url = "*.txt", use = [ "edit", "to-html" ] },
 
     { url = "*.gif", use = [ "play", "image-view-version-sorted", "image-view-random-sorted" ] },
-    { mime = "image/*", use = [ "image-view-version-sorted", "image-view-random-sorted" ] },
+    { mime = "image/*", use = [ "image-view", "image-view-version-sorted", "image-view-random-sorted" ] },
     { mime = "video/*", use = [ "play" ] },
     { mime = "audio/*", use = [ "play" ] },
     { mime = "inode/x-empty", use = [ "edit" ] },

@@ -29,6 +29,8 @@ hl.bind("SUPER + mouse:273", hl.dsp.window.resize(), { mouse = true })
 hl.bind("SUPER + return", hl.dsp.exec_cmd('$TERM_PROGRAM'))
 hl.bind("SUPER + slash", hl.dsp.exec_cmd('$TERM_PROGRAM -e $FILE_MANAGER'))
 
+hl.bind("SUPER + S", hl.dsp.exec_cmd('snapshot'))
+
 hl.bind("SUPER + minus", hl.dsp.exec_cmd('$TERM_PROGRAM -e $AUDIO_CONTROL'))
 hl.bind("SUPER + equal", hl.dsp.exec_cmd('$TERM_PROGRAM -e $PROCESS_CONTROL'))
 
@@ -46,8 +48,8 @@ hl.bind("SUPER + up", hl.dsp.exec_cmd('brightnessctl set +2%'))
 
 hl.bind("SUPER + B", hl.dsp.submap("blue"))
 hl.define_submap("blue", "reset", function()
-    hl.bind("C", hl.dsp.exec_cmd('blue connect $(blue devices | wofi --dmenu | cut -d " " -f 1) && notify-send "$(blue name) 󰂱"'))
-    hl.bind("R", hl.dsp.exec_cmd('blue reconnect $(blue devices | wofi --dmenu | cut -d " " -f 1)'))
+    hl.bind("C", hl.dsp.exec_cmd('blue connect $(blue devices | $LAUNCHER -dmenu | cut -d " " -f 1) && notify-send "$(blue name) 󰂱"'))
+    hl.bind("R", hl.dsp.exec_cmd('blue reconnect $(blue devices | $LAUNCHER -dmenu | cut -d " " -f 1)'))
     hl.bind("D", hl.dsp.exec_cmd('notify-send "󰂲" && blue disconnect'))
     hl.bind("B", hl.dsp.exec_cmd('notify-send "$(blue name): $(blue battery)%󰥉"'))
 end)
@@ -64,3 +66,6 @@ end)
 
 
 hl.bind("SUPER + Z", hl.dsp.dpms())
+
+hl.bind("SUPER + C", hl.dsp.exec_cmd('$TERM_PROGRAM -e numbat'))
+hl.bind("SUPER + S", hl.dsp.exec_cmd('rofi -show ssh'))
