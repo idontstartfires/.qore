@@ -1,0 +1,97 @@
+#!/usr/bin/env zsh
+
+setopt ERR_EXIT NO_UNSET PIPE_FAIL
+
+# Keep this local until .qore has a general mechanism for user configuration.
+snapshot_dir="${SNAPSHOT_DIR:-$HOME/doc/snapshots}"
+
+usage() {
+    print -r -- "Usage: snapshot <area|desktop|monitor|window>"
+}
+
+fail() {
+    print -ru2 -- "snapshot: $1"
+    if (( $+commands[notify-send] )); then
+        notify-send --urgency=critical "Snapshot failed" "$1" >/dev/null 2>&1 || true
+    fi
+    exit 1
+}
+
+require_command() {
+    (( $+commands[$1] )) || fail "required command not found: $1"
+}
+
+mode="${1:-}"
+case "$mode" in
+    -h|--help)
+        usage
+        exit 0
+        ;;
+    area|desktop|monitor|window) ;;
+    "")
+        usage >&2
+        exit 2
+        ;;
+    *)
+        usage >&2
+        fail "unknown capture type: $mode"
+        ;;
+esac
+
+require_command grim
+
+typeset -a grim_args
+case "$mode" in
+    area)
+        require_command slurp
+        geometry="$(slurp)" || exit 0
+        [[ -n "$geometry" ]] || exit 0
+        grim_args=(-g "$geometry")
+        ;;
+    desktop)
+        grim_args=()
+        ;;
+    monitor)
+        require_command hyprctl
+        require_command jq
+        monitor="$(
+            hyprctl -j monitors |
+                jq -er '.[] | select(.focused) | .name'
+        )" || fail "could not determine the focused monitor"
+        grim_args=(-o "$monitor")
+        ;;
+    window)
+        require_command hyprctl
+        require_command jq
+        geometry="$(
+            hyprctl -j activewindow |
+                jq -er '
+                    select(.address != null and .address != "") |
+                    "\(.at[0]),\(.at[1]) \(.size[0])x\(.size[1])"
+                '
+        )" || fail "there is no active window"
+        grim_args=(-g "$geometry")
+        ;;
+esac
+
+mkdir -p -- "$snapshot_dir"
+
+timestamp="$(date '+%Y%m%dT%H%M%S.%N%z')"
+filename="${timestamp}-${mode}.png"
+destination="$snapshot_dir/$filename"
+temporary="$snapshot_dir/.${filename}.part"
+
+cleanup() {
+    [[ ! -e "$temporary" ]] || rm -f -- "$temporary"
+}
+trap cleanup EXIT INT TERM
+
+grim "${grim_args[@]}" "$temporary" || fail "capture failed"
+[[ -s "$temporary" ]] || fail "capture produced an empty file"
+mv -- "$temporary" "$destination"
+trap - EXIT INT TERM
+
+print -r -- "$destination"
+if (( $+commands[notify-send] )); then
+    notify-send "Snapshot saved" "$destination" >/dev/null 2>&1 || true
+fi
