@@ -1,3 +1,4 @@
+#!/bin/sh
 ROOT=$QORE
 AI_AGENT=codex
 

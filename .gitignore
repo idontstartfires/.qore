@@ -8,6 +8,7 @@
 /project/.active
 /project/profiles/**/.meta
 
+=======
 **/.env
 **/.env.*
 **/*.env

@@ -1,0 +1,112 @@
+#!/bin/sh
+# work-management — commands for the work-management plugin's repository state
+#
+# A project module, pulled into a profile init with:
+#   use work-management
+# Expects the importing profile to set ROOT to the project directory.
+#
+# The plugin keeps its state in fixed places, and these commands are two ways
+# in to them:
+#
+#   queue   .queue items — prompts written in advance, named by a 3-digit code
+#   work    open the file manager at one of the framework's places
+#
+# Nothing here writes framework documents: shapes are the agent's job, and a
+# queue item is a prompt the user types. These only get you to the right path.
+
+# ── Places ────────────────────────────────────────────────────────────────────
+
+# The framework's directories, as name:path rows relative to ROOT, in the
+# order they are most often reached for. `queue` is always offered — it is
+# untracked, so its absence means nothing; the rest are listed only if present,
+# since a project that has not adopted the framework should not be offered them.
+_wm_places() {
+    local row name dir
+    for row in \
+        'queue:.queue' \
+        'tracks:docs/work/tracks' \
+        'stickies:docs/work/stickies' \
+        'decisions:docs/decisions' \
+        'domain:docs/domain'
+    do
+        name=${row%%:*}; dir=${row#*:}
+        [ "$name" = queue ] || [ -d "$ROOT/$dir" ] || continue
+        printf '%s\n' "$row"
+    done
+}
+
+# ── queue ─────────────────────────────────────────────────────────────────────
+
+# Print an unused 3-digit name for a queue item, or return 1. Drawn at random
+# and retried: the space is 1000 wide and items are short lived, so a collision
+# is the rare case and a scan would be pointless.
+_wm_queue_code() {
+    local tries=0 code
+    while [ $tries -lt 100 ]; do
+        code=$(printf '%03d' $((RANDOM % 1000)))
+        [ -e "$ROOT/.queue/$code.md" ] || { printf '%s' "$code"; return 0; }
+        tries=$((tries + 1))
+    done
+    return 1
+}
+
+cmd_queue() {
+    cd "$ROOT" || return 1
+    mkdir -p .queue
+
+    local arg=$1; [ $# -gt 0 ] && shift
+    case $arg in
+        "")
+            local code
+            code=$(_wm_queue_code) \
+                || { printf 'queue: no free name in .queue\n' >&2; return 1; }
+            ${IDE:-nvim} ".queue/$code.md"
+            # The file is created by the editor, not here, so quitting without
+            # writing leaves no item behind — and nothing to report.
+            if [ -f ".queue/$code.md" ]; then
+                printf '%s\n' "$code"
+            else
+                printf 'queue: nothing written, no item created\n' >&2
+                return 1
+            fi
+            ;;
+        list|ls)
+            ls -1A .queue
+            ;;
+        *)
+            local picked
+            picked=$(ls -1A .queue | fzf --query="$arg" --select-1 --exit-0 --no-sort) \
+                || { printf 'queue: no item matching "%s"\n' "$arg" >&2; return 1; }
+            [ -n "$picked" ] || return 1
+            ${IDE:-nvim} ".queue/$picked"
+            ;;
+    esac
+}
+
+# ── work ──────────────────────────────────────────────────────────────────────
+
+# Open the file manager at one of the framework's places. With no argument the
+# picker opens; with one it is the query, so an exact-enough name goes straight
+# through and an ambiguous one opens the picker pre-filtered.
+cmd_work() {
+    cd "$ROOT" || return 1
+
+    local rows picked dir
+    rows=$(_wm_places)
+    [ -n "$rows" ] \
+        || { printf 'work: no work-management places under %s\n' "$ROOT" >&2; return 1; }
+
+    picked=$(printf '%s\n' "$rows" | fzf \
+        --query="${1:-}" --select-1 --exit-0 --no-sort \
+        --delimiter=: --with-nth=1 --nth=1 \
+        --preview='ls -1A {2}' --preview-window=right:60%)
+    if [ -z "$picked" ]; then
+        [ -n "${1:-}" ] && printf 'work: no place matching "%s"\n' "$1" >&2
+        return 1
+    fi
+
+    # `dir`, not `path` — under zsh a local named `path` blanks $PATH.
+    dir=$(printf '%s\n' "$picked" | cut -d: -f2)
+    mkdir -p "$dir"
+    ${FILE_MANAGER:-yazi} "$dir"
+}
