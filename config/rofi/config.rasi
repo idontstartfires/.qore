@@ -1,5 +1,5 @@
 configuration {
-    modes:          "drun,run,window,filebrowser,calc";
+    modes:          "drun,run,window,filebrowser,ssh";
     show-icons:     true;
     matching:       "fuzzy";
     sort:           true;

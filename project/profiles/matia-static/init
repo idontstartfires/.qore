@@ -12,6 +12,10 @@ cmd_scss() {
             target=$HOME/untill/portal/app/static/css/
             sass --load-path=style --watch style:$target
             ;;
+        compile)
+            target=$HOME/untill/portal/app/static/css/
+            sass --load-path=style style:$target
+            ;;
     esac
 }
 

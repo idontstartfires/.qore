@@ -13,8 +13,8 @@ hl.config({
         gaps_out = 10,
         border_size = 2,
         col = {
-            active_border = 0xFFFFFFFF,
-            inactive_border = 0x00000000,
+            active_border = "rgba(FFFFFFFF)",
+            inactive_border = "rgba(00000000)",
         },
         layout = "dwindle"
     },
@@ -47,7 +47,8 @@ hl.config({
     misc = {
         disable_hyprland_logo = true,
         disable_splash_rendering = false,
-        mouse_move_focuses_monitor = false
+        mouse_move_focuses_monitor = false,
+        focus_on_activate = false,
     }
 })
 
@@ -65,12 +66,26 @@ hl.window_rule({
 
     no_focus = true,
 })
+
 hl.window_rule({
     -- Ignore maximize requests from all apps. You'll probably like this.
     name  = "suppress-maximize-events",
     match = { class = ".*" },
-
     suppress_event = "maximize",
+})
+
+hl.window_rule({
+    name  = "floating game",
+    match = { title = "^Adam$" },
+    float = true,
+    monitor = "DP-2",
+})
+
+hl.window_rule({
+    name  = "file chooser",
+    match = { title = "^desktop file chooser$" },
+    float = true,
+    center = true
 })
 
 require("monitors")
