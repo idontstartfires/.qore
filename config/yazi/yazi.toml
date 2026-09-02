@@ -12,34 +12,34 @@ show_symlink   = true
 scrolloff      = 5
 
 [opener]
-edit = [ { run = '${EDITOR:-nvim} "$@"', desc = "$EDITOR", block = true } ]
-open = [ { run = 'xdg-open "$@"', desc = "Open" } ]
-extract = [ { run = 'ouch decompress --yes "$1"', desc = "Extract here" } ]
-web-browser = [ { run = '$BROWSER "$1"', orphan = true, desc = "Web Browser" } ]
+edit = [ { run = '${EDITOR:-nvim} %s', desc = "$EDITOR", block = true } ]
+open = [ { run = 'xdg-open %s', desc = "Open" } ]
+extract = [ { run = 'ouch decompress --yes %s1', desc = "Extract here" } ]
+web-browser = [ { run = '$BROWSER %s1', orphan = true, desc = "Web Browser" } ]
 
 image-view = [ { 
-    run = 'imv "$@" --', 
+    run = 'imv %s --', 
     orphan = true, desc = "View Images" 
 } ]
 image-view-version-sorted = [ { 
-    run = 'fd -t f --exec-batch file --mime-type | rg "image/" | cut -d: -f1 | sort -V | imv -n "$1" --', 
+    run = 'fd -t f -a --exec-batch file --mime-type | rg "image/" | cut -d: -f1 | sort -V | imv -n %s1 --', 
     orphan = true, desc = "View Images Version Sorted" 
 } ]
 image-view-random-sorted = [ {
-    run = 'fd -t f --exec-batch file --mime-type | rg "image/" | cut -d: -f1 | shuf | imv -n "$1" --',
+    run = 'fd -t f -a --exec-batch file --mime-type | rg "image/" | cut -d: -f1 | shuf | imv -n %s1 --',
     orphan = true, desc = "View Images Randomly" 
 } ]
 
-play = [ { run = 'mpv --mute --loop "$@"', orphan = true, desc = "mpv" } ]
+play = [ { run = 'mpv --mute --loop %s', orphan = true, desc = "mpv" } ]
 
-sh = [ { run = 'sh "$@"', orphan = true, desc = "Run Script" } ]
-exe = [ { run = './"$1"', orphan = true, desc = "Execute" } ]
-wine = [ { run = 'wine "$@"', desc = "Wine" } ]
+sh = [ { run = 'sh %s', orphan = true, desc = "Run Script" } ]
+exe = [ { run = '%s1', orphan = true, desc = "Execute" } ]
+wine = [ { run = 'wine %s', desc = "Wine" } ]
 
-zathura = [ { run = 'zathura -- "$@"', orphan = true, desc = "Zathura" } ]
-pdftoppm = [ { run = 'mkdir "${1%.*}" && pdftoppm -jpeg "$1" "${1%.*}/"', desc = "PDF -> JPEG" } ]
+zathura = [ { run = 'zathura -- %s', orphan = true, desc = "Zathura" } ]
+pdftoppm = [ { run = 'f=%s1; mkdir "${f%.*}" && pdftoppm -jpeg "$f" "${f%.*}/"', desc = "PDF -> JPEG" } ]
 
-to-html = [ { run = 'abiword --to=html "$@"', desc = "Text -> HTML" } ]
+to-html = [ { run = 'abiword --to=html %s', desc = "Text -> HTML" } ]
 
 [open]
 rules = [
@@ -73,12 +73,15 @@ rules = [
 ]
 
 [tasks]
-micro_workers    = 5
-macro_workers    = 4
-bizarre_retry    = 5
-image_alloc      = 536870912  # 512MB
-image_bound      = [ 0, 0 ]
-suppress_preload = false
+# yazi 26.8 split micro/macro_workers into per-kind worker counts
+file_workers    = 4
+plugin_workers  = 5
+fetch_workers   = 5
+preload_workers = 5
+process_workers = 5
+bizarre_retry   = 5
+image_alloc     = 536870912  # 512MB
+image_bound     = [ 0, 0 ]
 
 [plugins]
 preload = []
