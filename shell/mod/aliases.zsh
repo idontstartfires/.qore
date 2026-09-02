@@ -3,6 +3,9 @@
 alias pac='doas pacman'
 alias sys='doas systemctl'
 
+alias @='project -A'
+alias _='project'
+
 alias firefox='firefox-developer-edition'
 alias zen='zen-browser'
 

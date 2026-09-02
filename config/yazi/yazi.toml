@@ -83,6 +83,11 @@ suppress_preload = false
 [plugins]
 preload = []
 
+[plugin]
+prepend_previewers = [
+    { url = "*.csv", run = 'piper -- csv-align "$1" | bat -p --color=always --language=csv --wrap=never --terminal-width="$w"' },
+]
+
 [input]
 # cd
 cd_title  = "Change directory:"
