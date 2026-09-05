@@ -29,8 +29,7 @@ export PATH="$SCRIPTS:$PATH"
 export PYTHONPATH="$QORE/local/lib/py${PYTHONPATH:+:$PYTHONPATH}"
 export SHLIB="$QORE/local/lib/sh"
 
-export WLR_NO_HARDWARE_CURSORS=1
-export QT_QPA_PLATFORM=wayland 
-export QT_WAYLAND_DISABLE_WINDOWDECORATION=1
-export LIBVA_DRIVER_NAME=nvidia
-export __GLX_VENDOR_LIBRARY_NAME=nvidia
+for env_file in "$XDG_CONFIG_HOME"/shell/env.d/*.sh; do
+    [ -r "$env_file" ] && . "$env_file"
+done
+unset env_file

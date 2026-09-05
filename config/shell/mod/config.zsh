@@ -21,7 +21,7 @@ function _config_shell() {
         fi
         
         # The (N) is a Zsh-specific flag (nullglob) so it doesn't error if the folder is empty
-        local files=("$QORE/shell/mod"/*.zsh(N))
+        local files=("${XDG_CONFIG_HOME}/shell/mod"/*.zsh(N))
         if (( ${#files[@]} > 0 )); then
             for file in "${files[@]}"; do
                 # Strip the path and the .zsh extension for clean output
@@ -45,14 +45,16 @@ function _config_shell() {
             $EDITOR "$HOME/.zshrc"
         ;;
         *)    
-            if [ -f "$QORE/shell/mod/$arg.zsh" ]; then
-                $EDITOR "$QORE/shell/mod/$arg.zsh"
+            if [ -f "${XDG_CONFIG_HOME}/shell/mod/$arg.zsh" ]; then
+                $EDITOR "${XDG_CONFIG_HOME}/shell/mod/$arg.zsh"
             else
                 echo "Shell module $arg not found"
                 
                 if read -q "REPLY?Would you like to create it? [y/N]: "; then
-                    mod_file="$QORE/shell/mod/$arg.zsh"
+                    # New modules are authored in the repo (global), then linked by sync
+                    mod_file="$QORE/config/shell/mod/$arg.zsh"
                     $EDITOR $mod_file
+                    [ -f "$mod_file" ] && "$QORE/sync"
                 else
                     return
                 fi

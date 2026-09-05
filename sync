@@ -1,7 +1,26 @@
+#!/bin/sh
+#
+# We will use `stow` to 
+# Requirements:
+#   GNU Stow (https://www.gnu.org/software/stow/)
+#     For linking `.qore` files elsewhere in your home directory
+#
 
-stow -t $HOME --adopt --ignore='^mod' shell
+# Exit on error
+set -e
 
-stow -t $HOME/.config --adopt config
+# Ensure we are in this script's directory, `.qore`'s project home.
+cd "$(dirname "$0")"
 
-MACHINE=$(hostname -s)
-[ -d "config.$MACHINE" ] && stow -t $HOME/.config --adopt "config.$MACHINE"
+# Capture the config home directory
+configs=${XDG_CONFIG_HOME:-~/.config}
+# Link global configs
+stow -R --no-folding --override='.*' -t "$configs" config
+# Link machine-specific configs, overriding global configs
+machine=$(cat /etc/hostname 2>/dev/null || uname -n)
+machine=${machine%%.*}
+if [ -d "config.$machine" ]; then
+    stow -R --no-folding --override='.*' -t "$configs" "config.$machine"
+fi
+# Link shell dot files to the home directory from the config home
+stow -R --ignore='^(mod|env\.d)$' -d "$configs" -t ~ shell

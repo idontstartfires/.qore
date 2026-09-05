@@ -19,8 +19,9 @@ SAVEHIST=1000
 export SSH_AUTH_SOCK="$XDG_RUNTIME_DIR/ssh-agent.socket"
 
 if [ -d "$QORE" ]; then
-    # Source shell modules
-    for mod_file in `ls $QORE/shell/mod/`; do 
-        source "$QORE/shell/mod/$mod_file"
+    mod_home=$XDG_CONFIG_HOME/shell/mod
+    for mod_file in $mod_home/*.zsh(N); do
+        source "$mod_file"
     done
+    unset mod_home mod_file
 fi
