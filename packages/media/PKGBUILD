@@ -1,0 +1,6 @@
+pkgname=qore-media
+pkgver=1.0
+pkgrel=1
+pkgdesc="Qore Media"
+arch=("any")
+depends=("imv" "mpv")

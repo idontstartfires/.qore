@@ -1,4 +1,6 @@
 *.pkg.tar.zst
+/packages/*/pkg/
+/packages/*/src/
 
 # Plugins that should be installed independently, not included in this repo
 /config/yazi/plugins

@@ -1,0 +1,6 @@
+pkgname=qore-audio
+pkgver=1.0
+pkgrel=1
+pkgdesc="Qore Audio"
+arch=("any")
+depends=("pipewire" "pipewire-alsa" "pipewire-pulse" "pulsemixer" "wireplumber")

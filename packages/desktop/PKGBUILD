@@ -1,7 +1,6 @@
 pkgname=qore-desktop
 pkgver=1.0
-pkgrel=1
-pkgdesc="Qore desktop"
+pkgrel=3
+pkgdesc="Qore Desktop"
 arch=("any")
-depends=("greetd" "hyprland" "libnotify" "wev" "wl-clipboard" "wlr-randr" "xdg-desktop-portal-hyprland")
-
+depends=("awww" "ghostty" "greetd" "hyprland" "libnotify" "polkit" "qore-audio" "qore-fonts" "qore-portals" "rofi" "swaync" "uwsm" "waybar" "wev" "wl-clipboard" "wlr-randr" "xdg-user-dirs")
