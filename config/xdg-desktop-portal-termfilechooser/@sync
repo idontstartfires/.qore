@@ -1,0 +1,5 @@
+#!/bin/sh
+set -e
+. "$(dirname "$0")/../@mod/sync.sh"
+
+qore_link "${XDG_CONFIG_HOME:-$HOME/.config}/xdg-desktop-portal-termfilechooser"

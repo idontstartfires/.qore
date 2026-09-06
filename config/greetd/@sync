@@ -1,0 +1,5 @@
+#!/bin/sh
+set -e
+. "$(dirname "$0")/../@mod/sync.sh"
+
+qore_install /etc/greetd

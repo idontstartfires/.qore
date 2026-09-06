@@ -1,0 +1,9 @@
+#!/bin/sh
+set -e
+. "$(dirname "$0")/../@mod/sync.sh"
+
+config=${XDG_CONFIG_HOME:-$HOME/.config}
+qore_link "$config/shell"
+
+# Top-level dotfiles live in the shell config dir; link those into $HOME.
+stow -R --ignore='^(mod|env\.d)$' -d "$config" -t "$HOME" shell

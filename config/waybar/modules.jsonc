@@ -3,7 +3,7 @@
     "position": "top",
 
     "custom/host": {
-        "exec": "hostname -s",
+        "exec": "uname -n",
         "format": "{} 󱗆"
     },
     "custom/project": {

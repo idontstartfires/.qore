@@ -1,0 +1,44 @@
+#!/bin/sh
+#
+# Deploy every config package. Each package owns an @sync script and decides how
+# its files reach the system; this only walks them.
+#
+# Requirements:
+#   GNU Stow (https://www.gnu.org/software/stow/)
+#   doas or sudo, for packages that write outside $HOME
+#
+# Usage:
+#   ./@sync              deploy every package
+#   ./@sync -y           don't prompt before writing outside $HOME
+#   ./@sync hypr shell   deploy only the named packages
+
+set -e
+
+cd "$(dirname "$0")"
+
+packages=""
+flags=""
+for arg in "$@"; do
+    case "$arg" in
+        -*) flags="$flags $arg" ;;
+        *)  packages="$packages $arg" ;;
+    esac
+done
+
+if [ -z "$packages" ]; then
+    packages=$(find . -mindepth 2 -maxdepth 2 -name '@sync' -type f | sed 's|^\./||; s|/@sync$||' | sort)
+fi
+
+status=0
+for pkg in $packages; do
+    if [ ! -x "$pkg/@sync" ]; then
+        echo "@sync: no such package: $pkg" >&2
+        status=1
+        continue
+    fi
+    echo ":: $pkg"
+    # shellcheck disable=SC2086
+    "$pkg/@sync" $flags || status=1
+done
+
+exit $status
