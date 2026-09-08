@@ -288,7 +288,7 @@ or `tiny_http`+`ureq`), `serde` + `toml` + `serde_yaml`, `ratatui`, `crossterm`,
 
 ## 7. Repo integration
 
-- `.qore` is a cross-machine dotfiles repo installed via `stow` (`./sync`): `shell/`→`$HOME`,
+- `.qore` is a cross-machine dotfiles repo installed via `stow` (`./sync`): `config/shell/`→`~/.config/shell`→`$HOME` (rc/profile only),
   `config/`→`~/.config`, plus per-host overlay `config.$(hostname -s)` (hosts: `blackbird`,
   `eagle`, `rosy-finch`; `parotia` to be added). `config/watt/` stows to `~/.config/watt/`.
 - **No build artifacts committed.** Source in `power/`, `power/target/` gitignored, binary built

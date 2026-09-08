@@ -1,0 +1,6 @@
+pkgname=qore-file-preview
+pkgver=1.0
+pkgrel=1
+pkgdesc="Qore File Preview"
+arch=("any")
+depends=("7zip" "ffmpeg" "imagemagick" "jq" "ouch" "poppler" "resvg" "xdg-utils")

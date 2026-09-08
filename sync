@@ -1,7 +1,0 @@
-
-stow -t $HOME --adopt --ignore='^mod' shell
-
-stow -t $HOME/.config --adopt config
-
-MACHINE=$(hostname -s)
-[ -d "config.$MACHINE" ] && stow -t $HOME/.config --adopt "config.$MACHINE"

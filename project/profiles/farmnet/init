@@ -17,12 +17,13 @@ _get_ssh_host() {
 
 _get_node_interlink_port() {
     case $1 in 
-        seeder-0)    echo 5555 ;;
-        structure-0) echo 5556 ;;
-        structure-1) echo 5557 ;;
-        harvester-0) echo 5558 ;;
-        downlift-0)  echo 5559 ;;
-        dev-0)       echo 5560 ;;
+        seeder-0)      echo 5555 ;;
+        structure-0)   echo 5556 ;;
+        structure-1)   echo 5557 ;;
+        harvester-0)   echo 5558 ;;
+        downlift-0)    echo 5559 ;;
+        dev-0)         echo 5560 ;;
+        water-room-a)  echo 5560 ;;
     esac
 }
 

@@ -1,0 +1,6 @@
+pkgname=qore-portals
+pkgver=1.0
+pkgrel=1
+pkgdesc="Qore Desktop Portals"
+arch=("any")
+depends=("xdg-desktop-portal-gtk" "xdg-desktop-portal-hyprland" "xdg-desktop-portal-termfilechooser")

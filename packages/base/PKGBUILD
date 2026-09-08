@@ -1,0 +1,6 @@
+pkgname=qore-base
+pkgver=1.0
+pkgrel=1
+pkgdesc="Qore Base"
+arch=("any")
+depends=("base-devel" "git" "man-db" "openssh" "pacman-contrib" "reflector" "rsync" "stow")

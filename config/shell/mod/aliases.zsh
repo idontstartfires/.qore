@@ -24,3 +24,6 @@ alias mkdir='mkdir -pv'
 # Changing default file locations to clean my home directory
 alias mbsync='mbsync -c $XDG_CONFIG_HOME/isync/mbsyncrc'
 alias gpg2='gpg2 --homedir $XDG_DATA_HOME/gnupg'
+
+# Merge leftover .pacnew files side by side
+alias pacdiff='doas DIFFPROG="nvim -d" pacdiff'

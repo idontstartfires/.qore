@@ -1,0 +1,10 @@
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = *
+
+[Action]
+Description = Listing any .pacnew/.pacsave left behind (merge them with: pacdiff)
+When = PostTransaction
+Exec = /bin/sh -c "find /etc -name '*.pacnew' -o -name '*.pacsave' 2>/dev/null | sort | sed 's|^|  |'"

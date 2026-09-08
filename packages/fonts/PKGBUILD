@@ -1,0 +1,6 @@
+pkgname=qore-fonts
+pkgver=1.0
+pkgrel=1
+pkgdesc="Qore Fonts"
+arch=("any")
+depends=("noto-fonts-emoji" "ttf-hack-nerd" "ttf-liberation" "ttf-nerd-fonts-symbols")
