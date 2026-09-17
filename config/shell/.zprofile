@@ -25,7 +25,8 @@ export PYTHON_HISTORY=$XDG_DATA_HOME/python/history
 
 export QORE=$HOME/.qore
 export SCRIPTS="$HOME/.local/bin:$QORE/local/bin:$QORE/project/bin"
-export PATH="$SCRIPTS:$PATH"
+export CARGO_BIN="$HOME/.cargo/bin"
+export PATH="$SCRIPTS:$PATH:$CARGO_BIN"
 export PYTHONPATH="$QORE/local/lib/py${PYTHONPATH:+:$PYTHONPATH}"
 export SHLIB="$QORE/local/lib/sh"
 
