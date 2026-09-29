@@ -22,8 +22,9 @@ _get_node_interlink_port() {
         structure-1)   echo 5557 ;;
         harvester-0)   echo 5558 ;;
         downlift-0)    echo 5559 ;;
-        dev-0)         echo 5560 ;;
         water-room-a)  echo 5560 ;;
+        water-room-b)  echo 5561 ;;
+        water-room-c)  echo 5562 ;;
     esac
 }
 
@@ -52,14 +53,9 @@ cmd_node() {
         test)
             INTERLINK_PORT=$(_get_node_interlink_port $NODE_NAME)
             echo "Interlink port: $INTERLINK_PORT"
-            while true; do
-                INTERLINK_PORT=$INTERLINK_PORT \
-                uv run src/main.py \
-                --mode=test \
-                --config="$NODE_NAME" \
-                $@ -l PeerDiscovery=30 Uplink=30 Interlink=30
-                sleep 2
-            done
+            NODE_PATH=$NODE_NAME \
+            INTERLINK_ROUTING_PORT=$INTERLINK_PORT \
+            uv run src/main.py \
             ;;
         *) echo "Unknown command: node $cmd" ;;
     esac 
