@@ -40,6 +40,8 @@ end)
 
 hl.bind("SUPER + minus", hl.dsp.exec_cmd('$TERM_PROGRAM -e $AUDIO_CONTROL'))
 hl.bind("SUPER + equal", hl.dsp.exec_cmd('$TERM_PROGRAM -e $PROCESS_CONTROL'))
+hl.bind("SUPER + m", hl.dsp.exec_cmd('$TERM_PROGRAM -e ytm'))
+hl.bind("SUPER + SHIFT + m", hl.dsp.exec_cmd('$TERM_PROGRAM -e cava'))
 
 hl.bind("SUPER + space", hl.dsp.exec_cmd('$LAUNCHER -show run'))
 
