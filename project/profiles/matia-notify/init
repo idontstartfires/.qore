@@ -1,0 +1,5 @@
+#!/bin/sh
+ROOT=$HOME/untill/matia/libs/notify/
+
+use gar-publish
+use python-tooling

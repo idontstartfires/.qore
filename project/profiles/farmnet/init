@@ -14,21 +14,6 @@ _get_ssh_host() {
     esac
 }
 
-
-_get_node_interlink_port() {
-    case $1 in 
-        seeder-0)      echo 5555 ;;
-        structure-0)   echo 5556 ;;
-        structure-1)   echo 5557 ;;
-        harvester-0)   echo 5558 ;;
-        downlift-0)    echo 5559 ;;
-        water-room)    echo 5560 ;;
-        water-room-a)  echo 5560 ;;
-        water-room-b)  echo 5561 ;;
-        water-room-c)  echo 5562 ;;
-    esac
-}
-
 cmd_node() {
     cd "$ROOT"
     if [ -f "$ROOT/.env" ]; then
@@ -54,15 +39,13 @@ cmd_node() {
             $ROOT/ $REMOTE:~/farmnet/
             ;;
         ssh|sftp) $cmd $REMOTE ;;
-        test)
-            interlink_routing_port=$(_get_node_interlink_port $NODE_PATH)
-            echo "Interlink port: $interlink_routing_port"
-            INTERLINK_ROUTING_PORT=$interlink_routing_port \
-            NODE_PATH=$NODE_PATH \
-            uv run src/main.py \
-            ;;
         *) echo "Unknown command: node $cmd" ;;
     esac 
+}
+
+cmd_nodes() {
+    cd "$ROOT"
+    uv run tool/nodes/app.py "$@"
 }
 
 cmd_mmd() {
